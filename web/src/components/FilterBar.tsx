@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Filters, RangeKey, SavedView } from "../lib/api";
 import { CATEGORIES, SOURCES, STAGES, stageColor, stageLabel } from "../lib/stages";
 import { Popover, cx, fmtDate } from "./ui";
@@ -87,6 +87,13 @@ export function FilterBar({ filters, onChange, views, viewId, onOpenView, onDeta
   const set = (patch: Partial<Filters>) => onChange({ ...filters, ...patch });
   const [q, setQ] = useState(filters.q ?? "");
 
+  const searchRef = useRef<HTMLInputElement>(null);
+  const clearSearch = () => {
+    setQ("");
+    if (filters.q) set({ q: null }); // apply at once instead of waiting for the typing delay
+    searchRef.current?.focus();
+  };
+
   useEffect(() => setQ(filters.q ?? ""), [filters.q]);
   useEffect(() => {
     const t = setTimeout(() => {
@@ -144,12 +151,30 @@ export function FilterBar({ filters, onChange, views, viewId, onOpenView, onDeta
         onChange={(stages) => set({ stages })}
         dot={stageColor}
       />
-      <input
-        value={q}
-        onChange={(e) => setQ(e.target.value)}
-        placeholder="Search company or role"
-        className="h-8 w-52 px-3 text-sm"
-      />
+      <div className="relative">
+        <input
+          ref={searchRef}
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          onKeyDown={(e) => e.key === "Escape" && q && clearSearch()}
+          placeholder="Search company or role"
+          aria-label="Search company or role"
+          className="h-8 w-52 pl-3 pr-8 text-sm"
+        />
+        {q && (
+          <button
+            type="button"
+            onClick={clearSearch}
+            aria-label="Clear search"
+            title="Clear search (Esc)"
+            className="absolute right-1.5 top-1/2 grid h-5 w-5 -translate-y-1/2 place-items-center rounded-full text-muted transition-colors hover:bg-line hover:text-ink"
+          >
+            <svg viewBox="0 0 16 16" width="10" height="10" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
+              <path d="M3 3l10 10M13 3L3 13" />
+            </svg>
+          </button>
+        )}
+      </div>
       <label className="flex h-8 cursor-pointer items-center gap-2 px-1 text-sm text-ink-2">
         <input
           type="checkbox"
