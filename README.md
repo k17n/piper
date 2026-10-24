@@ -137,3 +137,7 @@ cd web && npm run dev             # Vite dev server with /api proxied to :8000
 Low-confidence or unparseable extractions go to the **Review** page, where you can fix or dismiss
 them. Changing an application's stage by hand sets a manual override that later emails won't
 change; "Clear override" in the table goes back to the automatic stage.
+
+## License
+
+[MIT](LICENSE) © Kn1ghtF0x

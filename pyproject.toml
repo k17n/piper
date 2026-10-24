@@ -3,6 +3,7 @@ name = "piper-jobs"
 version = "0.1.0"
 description = "Piper: a private, local job-search assistant (Gmail + local LLM via Ollama)"
 readme = "README.md"
+license = "MIT"
 requires-python = ">=3.11,<3.14"
 dependencies = [
     "fastapi>=0.115",
