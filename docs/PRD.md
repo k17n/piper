@@ -58,7 +58,7 @@ Assumed setup skill: can follow a README to install the app and create a Google 
 | **Application** | One company + role the user is pursuing, built from its events. |
 | **Stage** | `applied`, `viewed`, `assessment`, `interview`, `offer`, `accepted`, `rejected`, `withdrawn`, `ghosted`. |
 | **Terminal stage** | `rejected`, `withdrawn`, `accepted` (and `ghosted`, which is derived). |
-| **Source** | `linkedin`, `ats`, `recruiter`, `direct`, `other`. |
+| **Source** | `linkedin`, `ats`, `recruiter`, `direct`, `referral`, `other`. |
 | **Role type** | `design`, `product`, `vc`, `other`. |
 | **Review item** | An email the model was unsure about, shown to the user for a decision. |
 
@@ -272,9 +272,9 @@ Read from environment variables, then `<data dir>/.env`, then `./.env`.
 ## 8. Data model (SQLite)
 
 - `emails(id, thread_id, from_addr, to_addr, subject, received_at, processed_at, snippet, llm_status)`
-- `events(id, email_id, application_id, stage, occurred_at, confidence, source)`
+- `events(id, email_id, application_id, stage, occurred_at, confidence, source, note)` (`note`: what happened, for updates logged by hand)
 - `applications(id, company_norm, company_display, role_norm, role_display, source, first_seen,
-  last_event_at, current_stage, manual_override, category, category_manual, notes)`
+  last_event_at, current_stage, manual_override, category, category_manual, job_url, notes)`
 - `review_queue(id, email_id, reason, extracted, excerpt, resolved)`
 - `saved_views(id, name, filters, is_default, created_at, updated_at)`
 - `sync_state(key, value)` — last sync time, filter signature, Gmail address
@@ -284,7 +284,8 @@ New columns are added automatically to existing databases on startup.
 ## 9. API (localhost only)
 
 `GET /api/meta`, `GET /api/sankey`, `GET /api/stats`, `GET /api/insights`, `GET /api/applications`,
-`PATCH /api/applications/{id}`, `GET /api/emails/{id}/thread`, `GET /api/review-queue`,
+`POST /api/applications`, `PATCH|DELETE /api/applications/{id}`, `POST /api/applications/{id}/events`,
+`POST /api/job-link/preview`, `GET /api/emails/{id}/thread`, `GET /api/review-queue`,
 `POST /api/review-queue/{id}/resolve`, `GET|POST /api/views`, `PATCH|DELETE /api/views/{id}`,
 `POST /api/sync`, `GET /api/sync/status`, `GET /api/sync/stream`. Read endpoints accept the shared
 filter parameters. Interactive docs at `/docs`.
