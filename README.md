@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/piper-wordmark.svg" alt="P.I.P.E.R. — Pipeline · Interviews · Pitches · Emails · Résumés" width="440">
+  <img src="assets/piper-wordmark.svg" alt="P.I.P.E.R. — Pipeline · Interviews · Pitches · Emails · Résumés" width="440">
 </p>
 
 # P.I.P.E.R.
@@ -10,7 +10,7 @@ Piper is a private job-search assistant that runs entirely on your own computer.
 job emails, keeps track of every application, and is growing into an assistant that also writes your
 cover letters and messages and helps you apply, all without your data leaving your machine.
 
-![The P.I.P.E.R. dashboard: KPI cards and the application funnel, flowing from source (LinkedIn, company sites, direct, recruiters) through applied, viewed, assessment and interview to offer, accepted, rejected or ghosted](docs/assets/dashboard.png)
+![The P.I.P.E.R. dashboard: KPI cards and the application funnel, flowing from source (LinkedIn, company sites, direct, recruiters) through applied, viewed, assessment and interview to offer, accepted, rejected or ghosted](assets/dashboard.png)
 
 <sub>The dashboard with sample data (`piper seed`). Click any flow or stage to see the applications behind it.</sub>
 
