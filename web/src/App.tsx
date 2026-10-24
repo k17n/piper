@@ -7,6 +7,7 @@ import { KpiCards } from "./components/KpiCards";
 import { SankeyChart, type Selection } from "./components/SankeyChart";
 import { AppSheet } from "./components/AppSheet";
 import { ApplicationDetail } from "./components/ApplicationDetail";
+import { AddApplication } from "./components/AddApplication";
 import { ApplicationsTable } from "./components/ApplicationsTable";
 import { ReviewQueue } from "./components/ReviewQueue";
 import { SyncIndicator } from "./components/SyncIndicator";
@@ -57,6 +58,7 @@ export default function App() {
   const { dark, toggle } = useTheme();
   const [selection, setSelection] = useState<Selection | null>(null);
   const [openApp, setOpenApp] = useState<Application | null>(null);
+  const [adding, setAdding] = useState(false);
 
   const meta = useQuery({ queryKey: ["meta"], queryFn: api.meta });
   const views = useQuery({ queryKey: ["views"], queryFn: api.views });
@@ -166,9 +168,19 @@ export default function App() {
           )}
 
           {tab === "applications" && (
-            <section className="card anim-fade-up p-2">
-              {apps.data ? <ApplicationsTable apps={apps.data} onOpen={setOpenApp} /> : <div className="h-64" />}
-            </section>
+            <div className="anim-fade-up flex flex-col gap-3">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-sm text-ink-2">
+                  {apps.data ? `${apps.data.length} application${apps.data.length === 1 ? "" : "s"}` : ""}
+                </span>
+                <Button variant="primary" onClick={() => setAdding(true)}>
+                  + Add application
+                </Button>
+              </div>
+              <section className="card p-2">
+                {apps.data ? <ApplicationsTable apps={apps.data} onOpen={setOpenApp} /> : <div className="h-64" />}
+              </section>
+            </div>
           )}
 
           {tab === "review" && (
@@ -184,6 +196,15 @@ export default function App() {
         <AppSheet selection={selection} filters={filters} onClose={() => setSelection(null)} onOpen={setOpenApp} />
       )}
       {openApp && <ApplicationDetail key={openApp.id} app={openApp} onClose={() => setOpenApp(null)} />}
+      {adding && (
+        <AddApplication
+          onClose={() => setAdding(false)}
+          onAdded={(a) => {
+            setAdding(false);
+            setOpenApp(a);
+          }}
+        />
+      )}
     </div>
   );
 }

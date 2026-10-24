@@ -149,6 +149,7 @@ def apply_event(
     email_id: str | None = None,
     confidence: float = 1.0,
     application_id: int | None = None,
+    note: str = "",
 ) -> Application:
     """Attach an event to its application (or a new one). `application_id` forces the target,
     e.g. when the user picked it in the review queue."""
@@ -184,6 +185,7 @@ def apply_event(
             occurred_at=occurred_at,
             confidence=confidence,
             source=source,
+            note=note,
         )
     )
     session.flush()

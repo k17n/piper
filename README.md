@@ -27,6 +27,9 @@ cover letters and messages and helps you apply, all without your data leaving yo
 - **Shows your whole search at a glance.** An interactive funnel (Sankey) shows how applications flow
   from source to outcome, with response, interview and offer rates. Click any part to see the
   applications behind it.
+- **Tracks what email can't.** Add applications by hand (company sites that send no confirmation,
+  referrals, chats) and log updates like a phone screen or a verbal offer; later emails from the
+  company join the same application.
 - **Keeps the full story of every application.** Each one has a timeline of its emails and the live
   email conversation, newest first, with quoted replies stripped so it reads cleanly.
 - **Lets you slice it your way.** Filter by date, role type (design, product, VC, other), source and

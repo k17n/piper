@@ -33,7 +33,7 @@ PROGRESS: list[Stage] = [
 RANK: dict[Stage, int] = {s: i for i, s in enumerate(PROGRESS)}
 TERMINAL: set[Stage] = {Stage.rejected, Stage.withdrawn, Stage.ghosted, Stage.accepted}
 
-Source = Literal["linkedin", "ats", "recruiter", "direct", "other"]
+Source = Literal["linkedin", "ats", "recruiter", "direct", "referral", "other"]
 SOURCES: tuple[str, ...] = get_args(Source)
 
 

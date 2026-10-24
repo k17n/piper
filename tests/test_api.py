@@ -141,3 +141,51 @@ def test_ui_index_is_never_served_stale(client):
     assert r.status_code == 200 and r.headers["cache-control"] == "no-cache"
     asset = next((STATIC_DIR / "assets").glob("*.css")).name
     assert "immutable" in client.get(f"/assets/{asset}").headers["cache-control"]
+
+
+def test_track_applications_without_email(client, settings):
+    from datetime import date, timedelta
+
+    from piper_jobs.db import Email
+    from piper_jobs.resolver import apply_event
+
+    today = date.today()
+    r = client.post("/api/applications", json={
+        "company": "Brightpath", "role": "Product Designer", "source": "referral",
+        "applied_on": str(today - timedelta(days=5)), "notes": "Referred by a friend"})
+    assert r.status_code == 201
+    app = r.json()
+    assert (app["company"], app["source"], app["stage"], app["category"]) == ("Brightpath", "referral", "applied", "design")
+    assert app["notes"] == "Referred by a friend" and app["events"][0]["note"] == "Added by hand"
+
+    # something that happened off email moves it forward and shows on the timeline
+    r = client.post(f"/api/applications/{app['id']}/events",
+                    json={"stage": "interview", "occurred_on": str(today - timedelta(days=1)), "note": "Phone screen"})
+    assert r.json()["stage"] == "interview"
+    assert [e["note"] for e in r.json()["events"]] == ["Added by hand", "Phone screen"]
+
+    # a later email from the company joins it instead of creating a duplicate
+    with Session(get_engine(settings.db_path)) as s:
+        s.add(Email(id="bp1", from_addr="Brightpath <jobs@brightpath.example>", subject="Next steps",
+                    received_at=utcnow()))
+        s.flush()
+        apply_event(s, company="Brightpath", role="Product Designer", stage="interview", source="direct",
+                    occurred_at=utcnow(), email_id="bp1")
+        s.commit()
+    assert len([a for a in client.get("/api/applications", params={"range": "all"}).json()
+                if a["company"] == "Brightpath"]) == 1
+
+    # added the wrong one? delete it, and its emails don't bring it back
+    assert client.delete(f"/api/applications/{app['id']}").status_code == 204
+    assert all(a["company"] != "Brightpath" for a in client.get("/api/applications", params={"range": "all"}).json())
+    with Session(get_engine(settings.db_path)) as s:
+        assert s.get(Email, "bp1").llm_status == "dismissed"
+
+
+def test_add_application_starting_at_a_later_stage(client):
+    from datetime import date
+
+    app = client.post("/api/applications", json={"company": "Oakridge", "applied_on": str(date.today()),
+                                                  "stage": "interview"}).json()
+    assert app["stage"] == "interview" and app["role"] == ""
+    assert client.post("/api/applications", json={"company": "  ", "applied_on": str(date.today())}).status_code == 422

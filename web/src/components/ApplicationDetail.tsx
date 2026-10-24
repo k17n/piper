@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { api, type Application } from "../lib/api";
-import { sourceLabel, stageColor, stageLabel } from "../lib/stages";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { api, type Application, type Stage } from "../lib/api";
+import { STAGES, sourceLabel, stageColor, stageLabel } from "../lib/stages";
+import { today } from "./AddApplication";
 import { Button, EmailText, StageBadge, cx, fmtDate } from "./ui";
 
 function senderName(from: string) {
@@ -99,7 +100,80 @@ function Thread({ emailId, order, setOrder }: { emailId: string; order: Order; s
   );
 }
 
-export function ApplicationDetail({ app, onClose }: { app: Application; onClose: () => void }) {
+function LogUpdate({ app, onLogged }: { app: Application; onLogged: (a: Application) => void }) {
+  const qc = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState({ stage: app.stage === "ghosted" ? app.current_stage : app.stage, occurred_on: today(), note: "" });
+  const log = useMutation({
+    mutationFn: () => api.logUpdate(app.id, form),
+    onSuccess: (a) => {
+      qc.invalidateQueries();
+      onLogged(a);
+      setOpen(false);
+      setForm({ ...form, note: "" });
+    },
+  });
+  if (!open) {
+    return (
+      <Button variant="outline" className="mb-5 ml-1" onClick={() => setOpen(true)}>
+        + Log an update
+      </Button>
+    );
+  }
+  return (
+    <form
+      className="mb-5 flex flex-wrap items-center gap-2 rounded-xl border border-line p-3"
+      onSubmit={(e) => {
+        e.preventDefault();
+        log.mutate();
+      }}
+    >
+      <select
+        value={form.stage}
+        onChange={(e) => setForm({ ...form, stage: e.target.value as Stage })}
+        className="h-8 px-2 text-sm"
+        aria-label="Stage"
+      >
+        {STAGES.filter((s) => s !== "ghosted").map((s) => (
+          <option key={s} value={s}>
+            {stageLabel(s)}
+          </option>
+        ))}
+      </select>
+      <input
+        type="date"
+        max={today()}
+        value={form.occurred_on}
+        onChange={(e) => setForm({ ...form, occurred_on: e.target.value })}
+        className="h-8 px-2 text-sm"
+        aria-label="Date"
+      />
+      <input
+        autoFocus
+        value={form.note}
+        onChange={(e) => setForm({ ...form, note: e.target.value })}
+        placeholder="What happened? e.g. Phone screen with the hiring manager"
+        className="h-8 min-w-48 flex-1 px-2 text-sm"
+      />
+      <Button type="submit" variant="primary" disabled={log.isPending}>
+        Add
+      </Button>
+      <Button onClick={() => setOpen(false)}>Cancel</Button>
+    </form>
+  );
+}
+
+export function ApplicationDetail({ app: initial, onClose }: { app: Application; onClose: () => void }) {
+  const qc = useQueryClient();
+  const [app, setApp] = useState(initial);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const remove = useMutation({
+    mutationFn: () => api.deleteApplication(app.id),
+    onSuccess: () => {
+      qc.invalidateQueries();
+      onClose();
+    },
+  });
   const withEmail = app.events.filter((e) => e.email_id);
   const [order, setOrder] = useThreadOrder();
   const events = order === "newest" ? [...app.events].reverse() : app.events;
@@ -120,6 +194,21 @@ export function ApplicationDetail({ app, onClose }: { app: Application; onClose:
           </div>
           <div className="flex shrink-0 items-center gap-2">
             <StageBadge stage={app.stage} override={app.manual_override} />
+            {confirmDelete ? (
+              <span className="flex items-center gap-1 text-xs text-ink-2">
+                Delete?
+                <Button variant="danger" className="h-7 px-2" onClick={() => remove.mutate()} disabled={remove.isPending}>
+                  Yes
+                </Button>
+                <Button className="h-7 px-2" onClick={() => setConfirmDelete(false)}>
+                  No
+                </Button>
+              </span>
+            ) : (
+              <Button onClick={() => setConfirmDelete(true)} title="Delete this application" className="text-muted">
+                🗑
+              </Button>
+            )}
             <Button onClick={onClose} title="Close">
               ✕
             </Button>
@@ -143,13 +232,14 @@ export function ApplicationDetail({ app, onClose }: { app: Application; onClose:
                   <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: stageColor(e.stage) }} />
                   <span className="w-24 shrink-0 font-medium text-ink">{stageLabel(e.stage)}</span>
                   <span className="tabular w-28 shrink-0 whitespace-nowrap text-ink-2">{fmtDate(e.occurred_at)}</span>
-                  <span className="min-w-0 flex-1 truncate text-muted" title={e.subject ?? undefined}>
-                    {e.subject ?? "Added by hand"}
+                  <span className="min-w-0 flex-1 truncate text-muted" title={e.subject ?? e.note}>
+                    {e.subject ?? (e.note || "Added by hand")}
                   </span>
                 </button>
               </li>
             ))}
           </ol>
+          <LogUpdate app={app} onLogged={setApp} />
           {app.notes && <p className="mb-5 rounded-lg bg-surface-2 px-3 py-2 text-sm text-ink-2">{app.notes}</p>}
 
           <h3 className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-muted">Conversation</h3>

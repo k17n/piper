@@ -12,6 +12,7 @@ SOURCE_LABELS = {
     "ats": "Company site / ATS",
     "recruiter": "Recruiter",
     "direct": "Direct",
+    "referral": "Referral",
     "other": "Other source",
 }
 

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import json
-from datetime import date
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Request
@@ -51,6 +51,23 @@ class ApplicationPatch(BaseModel):
     category: Literal["design", "product", "vc", "other"] | None = None  # sets it by hand
     category_auto: bool | None = None  # true goes back to the automatic role type
     role: str | None = None  # name the role, e.g. for a confirmation that didn't say which one
+
+
+class ApplicationIn(BaseModel):
+    """An application added by hand, for ones that never produced an email."""
+    company: str
+    role: str | None = None
+    source: Source = "other"
+    stage: Stage = Stage.applied
+    applied_on: date
+    notes: str = ""
+
+
+class UpdateIn(BaseModel):
+    """Something that happened off email: a call, a referral, a verbal offer."""
+    stage: Stage
+    occurred_on: date
+    note: str = ""
 
 
 class ResolveIn(BaseModel):
@@ -102,6 +119,7 @@ def application_json(row: AppRow, emails: dict[str, Email] | None = None, accoun
             "email_id": email.id if real else None,
             "subject": email.subject if email else None,
             "gmail_url": message_url(email.id, account) if real else None,
+            "note": e.note,
         }
 
     return {
@@ -218,6 +236,56 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 for m in messages
             ],
         }
+
+    def application_response(session: Session, a: Application) -> dict:
+        events = session.exec(select(Event).where(Event.application_id == a.id).order_by(Event.occurred_at)).all()
+        row = AppRow(app=a, events=list(events), stage=a.current_stage)
+        return application_json(row, *emails_for(session, [row]))
+
+    @app.post("/api/applications", status_code=201)
+    def create_application(body: ApplicationIn, session: Session = Depends(session_dep)):
+        company = body.company.strip()
+        if not company:
+            raise HTTPException(422, "Company is required")
+        when = datetime.combine(body.applied_on, datetime.min.time()) + timedelta(hours=12)
+        a = apply_event(session, company=company, role=(body.role or "").strip() or None, stage="applied",
+                        source=body.source, occurred_at=when, note="Added by hand")
+        if body.stage != Stage.applied:
+            apply_event(session, company=company, role=None, stage=body.stage.value, source=body.source,
+                        occurred_at=when, application_id=a.id, note="Stage when added")
+        if body.notes:
+            a.notes = body.notes
+        session.commit()
+        session.refresh(a)
+        return application_response(session, a)
+
+    @app.post("/api/applications/{app_id}/events", status_code=201)
+    def log_update(app_id: int, body: UpdateIn, session: Session = Depends(session_dep)):
+        a = session.get(Application, app_id)
+        if not a:
+            raise HTTPException(404, "Application not found")
+        when = datetime.combine(body.occurred_on, datetime.min.time()) + timedelta(hours=12)
+        apply_event(session, company=a.company_display, role=None, stage=body.stage.value, source=a.source,
+                    occurred_at=when, application_id=a.id, note=body.note.strip() or "Logged by hand")
+        session.commit()
+        session.refresh(a)
+        return application_response(session, a)
+
+    @app.delete("/api/applications/{app_id}", status_code=204)
+    def delete_application(app_id: int, session: Session = Depends(session_dep)):
+        """Remove an application and its timeline. Linked emails stay stored as 'dismissed', which no
+        sync or re-check ever revisits, so the application doesn't come back."""
+        a = session.get(Application, app_id)
+        if not a:
+            raise HTTPException(404, "Application not found")
+        for e in session.exec(select(Event).where(Event.application_id == app_id)).all():
+            if e.email_id and (email := session.get(Email, e.email_id)):
+                email.llm_status = "dismissed"
+                session.add(email)
+            session.delete(e)
+        session.flush()
+        session.delete(a)
+        session.commit()
 
     @app.patch("/api/applications/{app_id}")
     def patch_application(app_id: int, body: ApplicationPatch, session: Session = Depends(session_dep)):

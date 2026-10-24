@@ -28,7 +28,7 @@ Fields:
   rejected   - the company declined ("unfortunately", "not moving forward")
   withdrawn  - the candidate withdrew
   Use null if is_job_related is false.
-- source: linkedin (LinkedIn emails), ats (Greenhouse/Lever/Workday/etc.), recruiter (an agency recruiter reaching out), direct (the company's own people or mail, and the candidate's own outreach), other.
+- source: linkedin (LinkedIn emails), ats (Greenhouse/Lever/Workday/etc.), recruiter (an agency recruiter reaching out), direct (the company's own people or mail, and the candidate's own outreach), referral (someone referred the candidate), other.
 - confidence: 0-1, how sure you are about is_job_related, company AND stage together. Use a low value when unsure."""
 
 FEW_SHOTS: list[tuple[dict[str, str], dict]] = [

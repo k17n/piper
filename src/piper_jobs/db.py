@@ -26,7 +26,7 @@ class Email(SQLModel, table=True):
     received_at: NaiveDatetime
     processed_at: NaiveDatetime | None = None
     snippet: str = ""
-    llm_status: str = "pending"  # skipped | not_job | ok | review | outgoing
+    llm_status: str = "pending"  # skipped | not_job | ok | review | outgoing | dismissed
 
 
 class Application(SQLModel, table=True):
@@ -55,6 +55,7 @@ class Event(SQLModel, table=True):
     occurred_at: NaiveDatetime
     confidence: float = 1.0
     source: str | None = None
+    note: str = ""  # what happened, for updates logged by hand (no email)
 
 
 class ReviewItem(SQLModel, table=True):
@@ -112,6 +113,7 @@ _ADDED_COLUMNS = [
     ("emails", "to_addr", "VARCHAR NOT NULL DEFAULT ''"),
     ("applications", "category", "VARCHAR NOT NULL DEFAULT 'other'"),
     ("applications", "category_manual", "BOOLEAN NOT NULL DEFAULT 0"),
+    ("events", "note", "TEXT NOT NULL DEFAULT ''"),
 ]
 
 

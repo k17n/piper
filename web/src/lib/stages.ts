@@ -17,6 +17,7 @@ export const SOURCES: { value: Source; label: string }[] = [
   { value: "ats", label: "Company site / ATS" },
   { value: "recruiter", label: "Recruiter" },
   { value: "direct", label: "Direct" },
+  { value: "referral", label: "Referral" },
   { value: "other", label: "Other" },
 ];
 

@@ -189,8 +189,15 @@ view can be default.
 ### 6.9 Applications table ✅
 
 - Sortable columns: company, role, type, source, stage, applied date, last update.
-- Inline editing: stage (sets a manual override, clearable), role type, notes.
+- Inline editing: role, stage (sets a manual override, clearable), role type, notes.
 - Clicking a company opens the application detail panel.
+- **Add application** (for ones with no email): company, role, source (incl. Referral), date applied,
+  current stage, notes. Later emails from the company attach to it instead of creating a duplicate.
+- **Log an update** in the detail panel: stage, date and a note for things that happened off email;
+  it appears on the timeline and moves the stage like an email would.
+- **Delete** with an inline confirmation; its emails are kept as *dismissed* so it never comes back.
+- Identical role-less confirmations from one sender count as separate applications; role-less
+  updates with several open applications at a company go to the review queue to choose which.
 
 ### 6.10 Application detail and conversation ✅
 

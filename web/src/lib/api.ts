@@ -9,7 +9,7 @@ export type Stage =
   | "withdrawn"
   | "ghosted";
 
-export type Source = "linkedin" | "ats" | "recruiter" | "direct" | "other";
+export type Source = "linkedin" | "ats" | "recruiter" | "direct" | "referral" | "other";
 export type Category = "design" | "product" | "vc" | "other";
 export type RangeKey = "30d" | "90d" | "180d" | "all" | "custom";
 
@@ -124,6 +124,7 @@ export interface AppEvent {
   email_id: string | null;
   subject: string | null;
   gmail_url: string | null;
+  note: string;
 }
 
 export interface ThreadMessage {
@@ -225,6 +226,17 @@ export const api = {
     },
   ) =>
     http<Application>(`/api/applications/${id}`, { method: "PATCH", body: json(body) }),
+  createApplication: (body: {
+    company: string;
+    role?: string;
+    source: Source;
+    stage: Stage;
+    applied_on: string;
+    notes?: string;
+  }) => http<Application>("/api/applications", { method: "POST", body: json(body) }),
+  logUpdate: (id: number, body: { stage: Stage; occurred_on: string; note?: string }) =>
+    http<Application>(`/api/applications/${id}/events`, { method: "POST", body: json(body) }),
+  deleteApplication: (id: number) => http<void>(`/api/applications/${id}`, { method: "DELETE" }),
   thread: (emailId: string) => http<EmailThread>(`/api/emails/${emailId}/thread`),
   reviewQueue: () => http<ReviewItem[]>("/api/review-queue"),
   resolveReview: (id: number, body: Record<string, unknown>) =>
