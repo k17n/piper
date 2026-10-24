@@ -105,6 +105,19 @@ function JobLink({ app, onSaved }: { app: Application; onSaved: (a: Application)
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(app.job_url);
   const [error, setError] = useState<string | null>(null);
+  const fillRole = useMutation({
+    mutationFn: async () => {
+      const d = await api.previewJobLink(app.job_url);
+      if (!d.role) throw new Error("The posting didn't say which role it is.");
+      return api.patchApplication(app.id, { role: d.role });
+    },
+    onSuccess: (a) => {
+      qc.invalidateQueries({ queryKey: ["applications"] });
+      onSaved(a);
+      setError(null);
+    },
+    onError: (e: Error) => setError(e.message),
+  });
   const save = useMutation({
     mutationFn: (job_url: string) => api.patchApplication(app.id, { job_url }),
     onSuccess: (a) => {
@@ -156,6 +169,17 @@ function JobLink({ app, onSaved }: { app: Application; onSaved: (a: Application)
           <button onClick={() => setEditing(true)} className="text-xs text-muted hover:text-ink" title="Edit the link">
             Edit
           </button>
+          {!app.role && (
+            <button
+              onClick={() => fillRole.mutate()}
+              disabled={fillRole.isPending}
+              className="text-xs font-medium text-accent hover:underline disabled:opacity-50"
+              title="Read the role from the job posting"
+            >
+              {fillRole.isPending ? "Reading…" : "Fill role from link"}
+            </button>
+          )}
+          {error && <span className="text-xs text-[#d03b3b]">{error}</span>}
         </>
       ) : (
         <button onClick={() => setEditing(true)} className="text-xs text-muted hover:text-ink">

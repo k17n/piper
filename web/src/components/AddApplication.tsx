@@ -37,6 +37,27 @@ export function AddApplication({ onClose, onAdded }: { onClose: () => void; onAd
     onError: (e: Error) => setError(e.message),
   });
   const set = (patch: Partial<typeof form>) => setForm({ ...form, ...patch });
+  const [found, setFound] = useState<string | null>(null);
+  const fill = useMutation({
+    mutationFn: () => api.previewJobLink(form.job_url),
+    onSuccess: (d) => {
+      // only fill what's still empty, so nothing you typed is overwritten
+      setForm((f) => ({
+        ...f,
+        job_url: d.url,
+        company: f.company.trim() ? f.company : d.company,
+        role: f.role.trim() ? f.role : d.role,
+        source: f.source === "other" ? d.source : f.source,
+        notes: f.notes.trim() || !d.location ? f.notes : `Location: ${d.location}`,
+      }));
+      setFound([d.role, d.company, d.location].filter(Boolean).join(" · ") || "Nothing new found");
+      setError(null);
+    },
+    onError: (e: Error) => {
+      setFound(null);
+      setError(e.message);
+    },
+  });
 
   return (
     <div className="fixed inset-0 z-[60] flex justify-end bg-black/30" onClick={onClose}>
@@ -79,6 +100,18 @@ export function AddApplication({ onClose, onAdded }: { onClose: () => void; onAd
               placeholder="https://careers.example.com/jobs/123"
               className="h-9 px-3"
             />
+            <div className="mt-1 flex items-center gap-2">
+              <Button
+                variant="outline"
+                className="h-7 px-2 text-xs"
+                disabled={!form.job_url.trim() || fill.isPending}
+                onClick={() => fill.mutate()}
+              >
+                {fill.isPending ? "Reading the posting…" : "Fill from link"}
+              </Button>
+              {found && <span className="min-w-0 truncate text-xs text-ink-2" title={found}>Found: {found}</span>}
+            </div>
+            <span className="text-[11px] text-muted">Opens the posting once to read its details. Nothing else is sent.</span>
           </Field>
           <div className="grid grid-cols-2 gap-3">
             <Field label="How you applied">

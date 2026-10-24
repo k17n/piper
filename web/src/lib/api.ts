@@ -128,6 +128,17 @@ export interface AppEvent {
   note: string;
 }
 
+export interface JobLinkDetails {
+  url: string;
+  company: string;
+  role: string;
+  location: string;
+  source: Source;
+  posted_on: string;
+  description: string;
+  found_by: string[];
+}
+
 export interface ThreadMessage {
   id: string;
   from: string;
@@ -237,6 +248,8 @@ export const api = {
     notes?: string;
     job_url?: string;
   }) => http<Application>("/api/applications", { method: "POST", body: json(body) }),
+  previewJobLink: (url: string) =>
+    http<JobLinkDetails>("/api/job-link/preview", { method: "POST", body: json({ url }) }),
   logUpdate: (id: number, body: { stage: Stage; occurred_on: string; note?: string }) =>
     http<Application>(`/api/applications/${id}/events`, { method: "POST", body: json(body) }),
   deleteApplication: (id: number) => http<void>(`/api/applications/${id}`, { method: "DELETE" }),

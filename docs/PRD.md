@@ -193,6 +193,11 @@ view can be default.
 - Clicking a company opens the application detail panel.
 - **Add application** (for ones with no email): company, role, optional job posting URL, source (incl. Referral), date applied,
   current stage, notes. Later emails from the company attach to it instead of creating a duplicate.
+- **Fill from link**: reads company, role, location and source from a job posting URL, only when the
+  user clicks it (the one network call besides Gmail; local/private addresses refused). Order:
+  schema.org JobPosting data → page title / preview tags (Greenhouse, Lever, LinkedIn formats) → the
+  URL itself (ATS company slugs) → the local model on the page text. Fills only empty fields. In the
+  detail panel, *Fill role from link* names applications whose emails never said the role.
 - **Log an update** in the detail panel: stage, date and a note for things that happened off email;
   it appears on the timeline and moves the stage like an email would.
 - **Delete** with an inline confirmation; its emails are kept as *dismissed* so it never comes back.

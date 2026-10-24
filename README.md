@@ -29,13 +29,14 @@ cover letters and messages and helps you apply, all without your data leaving yo
   applications behind it.
 - **Tracks what email can't.** Add applications by hand (company sites that send no confirmation,
   referrals, chats) and log updates like a phone screen or a verbal offer; later emails from the
-  company join the same application.
+  company join the same application. Paste a job posting link and **Fill from link** reads the
+  company, role and location for you (the page is opened only when you click it).
 - **Keeps the full story of every application.** Each one has a timeline of its emails and the live
   email conversation, newest first, with quoted replies stripped so it reads cleanly.
 - **Lets you slice it your way.** Filter by date, role type (design, product, VC, other), source and
   stage, and save combinations as views. Applications with no reply for a while are marked ghosted.
 - **Stays private.** The AI runs on your machine, the app only listens on `127.0.0.1`, Gmail access
-  is read-only, and all your data lives in `~/.piper/`, never in this repository.
+  is read-only, job posting links are opened only when you ask, and all your data lives in `~/.piper/`, never in this repository.
 
 ## Where Piper is going
 

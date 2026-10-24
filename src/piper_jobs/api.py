@@ -11,7 +11,6 @@ from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from typing import Literal
-from urllib.parse import urlparse
 
 from pydantic import BaseModel
 from sqlalchemy import func
@@ -21,6 +20,7 @@ from .config import Settings, load_settings
 from .db import Application, Email, Event, ReviewItem, SavedView, get_engine, get_state, set_state, utcnow
 from . import gmail_client
 from .gmail_client import message_url
+from .job_page import JobPageError, normalize_url, read_job_page
 from .filters import AppRow, Filters, RangeKey, load_rows
 from .pipeline import SyncRunner
 from .resolver import (apply_event, normalize_role, recompute_all_categories, recompute_category,
@@ -95,16 +95,14 @@ class ViewPatch(BaseModel):
 
 
 def clean_job_url(raw: str) -> str:
-    """A web link or nothing: adds https:// when the scheme is missing, rejects anything else."""
-    url = raw.strip()
-    if not url:
-        return ""
-    if "://" not in url:
-        url = "https://" + url
-    parsed = urlparse(url)
-    if parsed.scheme not in ("http", "https") or "." not in parsed.netloc:
-        raise HTTPException(422, "The job posting URL should be a web link, e.g. https://jobs.example.com/123")
-    return url
+    try:
+        return normalize_url(raw)
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
+
+
+class JobLinkIn(BaseModel):
+    url: str
 
 
 def get_filters(
@@ -258,6 +256,28 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         events = session.exec(select(Event).where(Event.application_id == a.id).order_by(Event.occurred_at)).all()
         row = AppRow(app=a, events=list(events), stage=a.current_stage)
         return application_json(row, *emails_for(session, [row]))
+
+    def model_fallback(text: str) -> dict:
+        """Ask the local model for company/role/location when the page has no structured data."""
+        import ollama
+
+        schema = {"type": "object", "properties": {"company": {"type": "string"}, "role": {"type": "string"},
+                                                   "location": {"type": "string"}},
+                  "required": ["company", "role", "location"]}
+        reply = ollama.Client(host=settings.ollama_host).chat(
+            model=settings.ollama_model, format=schema, options={"temperature": 0},
+            messages=[{"role": "system", "content": "This is the text of a job posting. Reply with JSON: the hiring "
+                                                    "company, the job title, and the location (empty string if absent)."},
+                      {"role": "user", "content": text[:6000]}])
+        return json.loads(reply.message.content or "{}")
+
+    @app.post("/api/job-link/preview")
+    def preview_job_link(body: JobLinkIn):
+        """Read company, role, location… from a job posting link. Only runs when the user asks."""
+        try:
+            return read_job_page(body.url, model_fallback=model_fallback).to_json()
+        except JobPageError as exc:
+            raise HTTPException(422, str(exc)) from exc
 
     @app.post("/api/applications", status_code=201)
     def create_application(body: ApplicationIn, session: Session = Depends(session_dep)):
