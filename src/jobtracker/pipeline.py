@@ -179,17 +179,27 @@ def _dismiss_reviews_now_filtered(session: Session, settings: Settings) -> None:
             session.add(email)
 
 
+def _delete_review_history(session: Session, email_ids: list[str]) -> None:
+    for i in range(0, len(email_ids), 500):
+        chunk = email_ids[i : i + 500]
+        for item in session.exec(select(ReviewItem).where(ReviewItem.email_id.in_(chunk))).all():
+            session.delete(item)
+    session.flush()  # review items must be gone before their emails are deleted (foreign key)
+
+
 def _not_job_with_known_company(session: Session, settings: Settings) -> list[Email]:
-    """'Not a job' verdicts made without context that we can now give (known company or thread)."""
+    """'Not a job' verdicts made without context that we can now give (known company or thread).
+    Emails with review history are left alone: you decided those yourself ("Not a job email")."""
     from .gmail_client import sender_domain
 
     domains = set(company_domains(session, settings))
     threads = set(session.exec(
         select(Email.thread_id).join(Event, Event.email_id == Email.id).where(Email.thread_id.is_not(None))
     ).all())
+    reviewed = set(session.exec(select(ReviewItem.email_id)).all())
     return [
         e for e in session.exec(select(Email).where(Email.llm_status == "not_job")).all()
-        if sender_domain(e.from_addr) in domains or e.thread_id in threads
+        if e.id not in reviewed and (sender_domain(e.from_addr) in domains or e.thread_id in threads)
     ]
 
 
@@ -214,7 +224,10 @@ def sync(
             # Filters changed: search the whole window again and re-check what was skipped before.
             last = None
             if not dry_run:
-                for e in session.exec(select(Email).where(Email.llm_status == "skipped")).all():
+                skipped = session.exec(select(Email).where(Email.llm_status == "skipped")).all()
+                # skipped emails can carry a review item the rules auto-dismissed; it goes with them
+                _delete_review_history(session, [e.id for e in skipped])
+                for e in skipped:
                     session.delete(e)
                 for e in _not_job_with_known_company(session, settings):
                     session.delete(e)

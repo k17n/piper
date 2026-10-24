@@ -175,3 +175,28 @@ def test_not_job_from_known_company_is_rechecked_after_upgrade(settings, northst
     assert model.calls == ["inv"]
     with Session(get_engine(settings.db_path)) as s:
         assert s.get(Email, "inv").llm_status == "ok"
+
+
+def test_rescan_handles_reviewed_emails(settings, northstar, monkeypatch):
+    """A filter change must not crash on emails that have review history, and must keep your decisions."""
+    from jobtracker.db import ReviewItem
+
+    fake, model = northstar
+    sync(settings, service=object(), extractor=model)
+    with Session(get_engine(settings.db_path)) as s:
+        # an email the rules auto-dismissed earlier (status skipped, review item resolved)…
+        s.get(Email, "promo").llm_status = "skipped"
+        s.add(ReviewItem(email_id="promo", reason="Low confidence", resolved=True))
+        # …and one you dismissed yourself with "Not a job email", from a company we now follow
+        s.get(Email, "inv").llm_status = "not_job"
+        s.add(ReviewItem(email_id="inv", reason="Not sure if this is about a job", resolved=True))
+        s.commit()
+
+    monkeypatch.setattr("jobtracker.pipeline.PROMPT_VERSION", 999)  # filters/prompt changed → re-scan
+    model.calls.clear()
+    sync(settings, service=object(), extractor=model)  # used to raise IntegrityError (FOREIGN KEY)
+
+    assert "inv" not in model.calls  # your decision is kept
+    with Session(get_engine(settings.db_path)) as s:
+        assert s.get(Email, "inv").llm_status == "not_job"
+        assert s.get(Email, "promo").llm_status == "skipped"  # re-checked, still skipped by the rules
