@@ -81,14 +81,9 @@ export function AddApplication({ onClose, onAdded }: { onClose: () => void; onAd
             add.mutate();
           }}
         >
-          <Field label="Company">
-            <input required autoFocus value={form.company} onChange={(e) => set({ company: e.target.value })} className="h-9 px-3" />
-          </Field>
-          <Field label="Role">
-            <input value={form.role} onChange={(e) => set({ role: e.target.value })} placeholder="e.g. Senior Product Designer" className="h-9 px-3" />
-          </Field>
           <Field label="Job posting URL (optional)">
             <input
+              autoFocus
               type="text"
               inputMode="url"
               value={form.job_url}
@@ -112,6 +107,12 @@ export function AddApplication({ onClose, onAdded }: { onClose: () => void; onAd
               {found && <span className="min-w-0 truncate text-xs text-ink-2" title={found}>Found: {found}</span>}
             </div>
             <span className="text-[11px] text-muted">Opens the posting once to read its details. Nothing else is sent.</span>
+          </Field>
+          <Field label="Company">
+            <input required value={form.company} onChange={(e) => set({ company: e.target.value })} className="h-9 px-3" />
+          </Field>
+          <Field label="Role">
+            <input value={form.role} onChange={(e) => set({ role: e.target.value })} placeholder="e.g. Senior Product Designer" className="h-9 px-3" />
           </Field>
           <div className="grid grid-cols-2 gap-3">
             <Field label="How you applied">
