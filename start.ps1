@@ -1,4 +1,4 @@
-# Starts Job Tracker: checks uv and Ollama, rebuilds the UI if needed, then opens the app.
+# Starts Piper: checks uv and Ollama, rebuilds the UI if needed, then opens the app.
 # Usage:  .\start.ps1            (native window)
 #         .\start.ps1 --browser  (browser tab instead)
 $ErrorActionPreference = "Stop"
@@ -46,7 +46,7 @@ Step "Checking Python dependencies"
 if ($LASTEXITCODE -ne 0) { Fail "uv sync failed." }
 
 # 4. UI: build when missing or when any UI source file is newer than the last build
-$built = "src\jobtracker\static\index.html"
+$built = "src\piper_jobs\static\index.html"
 $needsBuild = -not (Test-Path $built)
 if (-not $needsBuild) {
     $builtAt = (Get-Item $built).LastWriteTime
@@ -66,6 +66,6 @@ if ($needsBuild) {
 }
 
 # 5. Run
-Step "Opening Job Tracker (close the window to quit)"
+Step "Opening Piper (close the window to quit)"
 $env:PYTHONIOENCODING = "utf-8"
-& $uv run jobtracker ui @args
+& $uv run piper ui @args

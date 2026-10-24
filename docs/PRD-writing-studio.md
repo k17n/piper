@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Status** | Draft — not built |
-| **Parent** | [Job Tracker PRD](PRD.md), §12 Roadmap |
+| **Parent** | [Piper PRD](PRD.md), §12 Roadmap |
 | **Runs on** | The same local stack: Ollama (chat + embedding models), SQLite, the existing app UI |
 | **Privacy** | Fully local. Knowledge files, drafts and memories never leave the machine or enter the repository |
 
@@ -64,7 +64,7 @@ writing that sounds like them.
 
 ### 5.1 Knowledge base (about the user)
 
-A local folder, by default `~/.jobtracker/knowledge/`:
+A local folder, by default `~/.piper/knowledge/`:
 
 ```
 knowledge/

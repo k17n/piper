@@ -1,10 +1,11 @@
-"""Settings, loaded from env vars > ~/.jobtracker/.env > ./.env."""
+"""Settings, loaded from env vars > ~/.piper/.env > ./.env."""
 
 from __future__ import annotations
 
 import hashlib
 import json
 import os
+import shutil
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -23,8 +24,23 @@ SUBJECT_TERMS = [
 GMAIL_QUERY = f"(from:({' OR '.join(JOB_PLATFORMS)}) OR subject:({' OR '.join(SUBJECT_TERMS)}))"
 
 
+LEGACY_DATA_DIR = Path.home() / ".jobtracker"  # the folder used before the app was named Piper
+
+
 def default_data_dir() -> Path:
-    return Path(os.environ.get("JOBTRACKER_HOME") or Path.home() / ".jobtracker")
+    if os.environ.get("PIPER_HOME"):
+        return Path(os.environ["PIPER_HOME"])
+    path = Path.home() / ".piper"
+    migrate_legacy_data_dir(LEGACY_DATA_DIR, path)
+    return path
+
+
+def migrate_legacy_data_dir(old: Path, new: Path) -> bool:
+    """Move the pre-rename data folder (database, Gmail token, settings) to its new home, once."""
+    if new.exists() or not old.is_dir():
+        return False
+    shutil.move(str(old), str(new))
+    return True
 
 
 def _read_env_file(path: Path) -> dict[str, str]:

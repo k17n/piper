@@ -1,4 +1,4 @@
-"""`jobtracker seed`: realistic fake data so the UI works before Gmail is connected."""
+"""`piper seed`: realistic fake data so the UI works before Gmail is connected."""
 
 from __future__ import annotations
 

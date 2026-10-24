@@ -19,7 +19,7 @@ function useTheme() {
     // Switch the class before re-rendering: the Sankey reads theme colors from CSS while it renders.
     document.documentElement.classList.toggle("dark", next);
     try {
-      localStorage.setItem("jt-theme", next ? "dark" : "light");
+      localStorage.setItem("piper-theme", next ? "dark" : "light");
     } catch {
       /* storage unavailable */
     }
@@ -70,8 +70,8 @@ export default function App() {
     <div className="flex h-full">
       <aside className="hidden w-56 shrink-0 flex-col border-r border-line bg-surface/60 px-3 py-4 md:flex">
         <div className="mb-6 flex items-center gap-2 px-2">
-          <div className="grid h-7 w-7 place-items-center rounded-lg bg-accent text-sm font-bold text-accent-ink">J</div>
-          <div className="text-sm font-semibold text-ink">Job Tracker</div>
+          <div className="grid h-7 w-7 place-items-center rounded-lg bg-accent text-sm font-bold text-accent-ink">P</div>
+          <div className="text-sm font-semibold text-ink">Piper</div>
         </div>
         <nav className="flex flex-col gap-0.5">
           {NAV.map((n) => (
@@ -140,7 +140,7 @@ export default function App() {
                   <div className="h-96" />
                 ) : (
                   <Empty title="No applications in this range">
-                    Widen the date range, run a sync, or try sample data with <code>jobtracker seed</code>.
+                    Widen the date range, run a sync, or try sample data with <code>piper seed</code>.
                   </Empty>
                 )}
               </section>

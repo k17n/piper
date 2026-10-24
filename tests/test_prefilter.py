@@ -4,9 +4,9 @@ from pathlib import Path
 
 import pytest
 
-from jobtracker.gmail_client import extract_body, html_to_text
-from jobtracker.prefilter import should_process
-from jobtracker.schema import RawEmail
+from piper_jobs.gmail_client import extract_body, html_to_text
+from piper_jobs.prefilter import should_process
+from piper_jobs.schema import RawEmail
 
 SAMPLES = json.loads((Path(__file__).parents[1] / "data/samples/emails.json").read_text(encoding="utf-8"))
 
@@ -99,7 +99,7 @@ def test_crlf_quote_header_and_hard_wraps():
 
 
 def test_user_never_job_patterns_file(tmp_path):
-    from jobtracker.config import load_settings
+    from piper_jobs.config import load_settings
 
     (tmp_path / "never_job_subjects.txt").write_text(
         "# my own rules\n\ncompany newsletter\nweekly (digest|roundup)\n[unclosed\n", encoding="utf-8")

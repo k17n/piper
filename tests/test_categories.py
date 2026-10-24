@@ -1,6 +1,6 @@
 import pytest
 
-from jobtracker.categories import classify
+from piper_jobs.categories import classify
 
 
 @pytest.mark.parametrize("role,company,subjects,expected", [

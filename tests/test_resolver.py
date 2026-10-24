@@ -2,8 +2,8 @@ from datetime import datetime, timedelta
 
 from sqlmodel import select
 
-from jobtracker.db import Application
-from jobtracker.resolver import apply_event, normalize_company
+from piper_jobs.db import Application
+from piper_jobs.resolver import apply_event, normalize_company
 
 T0 = datetime(2026, 5, 1)
 

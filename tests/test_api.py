@@ -4,9 +4,9 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlmodel import Session
 
-from jobtracker.api import create_app
-from jobtracker.db import get_engine, utcnow
-from jobtracker.resolver import apply_event
+from piper_jobs.api import create_app
+from piper_jobs.db import get_engine, utcnow
+from piper_jobs.resolver import apply_event
 
 
 @pytest.fixture
@@ -99,9 +99,9 @@ def test_meta_and_docs(client):
 def test_email_thread_is_fetched_live(client, settings, monkeypatch):
     from datetime import datetime
 
-    from jobtracker import gmail_client
-    from jobtracker.db import Email
-    from jobtracker.schema import RawEmail
+    from piper_jobs import gmail_client
+    from piper_jobs.db import Email
+    from piper_jobs.schema import RawEmail
 
     with Session(get_engine(settings.db_path)) as s:
         s.add(Email(id="m2", thread_id="t1", from_addr="a@acme.com", subject="Re: hi", received_at=datetime(2026, 9, 2)))
@@ -133,7 +133,7 @@ def test_role_type_filter_and_manual_override(client):
 
 
 def test_ui_index_is_never_served_stale(client):
-    from jobtracker.api import STATIC_DIR
+    from piper_jobs.api import STATIC_DIR
 
     if not (STATIC_DIR / "index.html").is_file():
         pytest.skip("UI not built")

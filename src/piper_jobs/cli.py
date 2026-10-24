@@ -1,4 +1,4 @@
-"""Command line entry point: jobtracker ui | sync | doctor | seed | stats | reset."""
+"""Command line entry point: piper ui | sync | doctor | seed | stats | reset."""
 
 from __future__ import annotations
 
@@ -96,7 +96,7 @@ def cmd_reset(args, settings) -> int:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="jobtracker", description="Local job application tracker.")
+    parser = argparse.ArgumentParser(prog="piper", description="Piper: your private, local job-search assistant.")
     sub = parser.add_subparsers(dest="command", required=True)
 
     p = sub.add_parser("ui", help="open the app (native window, or --browser)")

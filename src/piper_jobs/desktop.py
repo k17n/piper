@@ -1,4 +1,4 @@
-"""`jobtracker ui`: start the API on a free localhost port, the scheduler, and a window."""
+"""`piper ui`: start the API on a free localhost port, the scheduler, and a window."""
 
 from __future__ import annotations
 
@@ -50,13 +50,13 @@ def run_ui(settings: Settings, *, browser: bool = False, port: int | None = None
 
     scheduler = start_scheduler(app.state.runner, settings)
     url = f"http://127.0.0.1:{port}/"
-    print(f"Job Tracker running at {url}")
+    print(f"Piper running at {url}")
     try:
         if not browser:
             try:
                 import webview
 
-                webview.create_window("Job Tracker", url, width=1440, height=920, min_size=(900, 600))
+                webview.create_window("Piper", url, width=1440, height=920, min_size=(900, 600))
                 webview.start()
                 return
             except Exception as exc:  # no GUI backend available → fall back to the browser

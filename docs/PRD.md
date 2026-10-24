@@ -1,4 +1,6 @@
-# Job Tracker — Product Requirements Document
+# Piper — Product Requirements Document
+
+> **P**ipeline · **I**nterviews · **P**itches · **E**mails · **R**ésumés — a private, local job-search assistant.
 
 | | |
 |---|---|
@@ -18,7 +20,7 @@ which ones went silent, and how their funnel is actually performing.
 
 ## 2. Product summary
 
-Job Tracker reads the user's Gmail (read-only), uses a **local LLM via Ollama** to turn each relevant
+Piper reads the user's Gmail (read-only), uses a **local LLM via Ollama** to turn each relevant
 email into a structured event (company, role, stage), merges events into one record per application,
 and presents the result as an interactive funnel (Sankey), a filterable applications table, a review
 queue for uncertain cases, and a per-application timeline with the email conversation.
@@ -41,7 +43,7 @@ Assumed setup skill: can follow a README to install the app and create a Google 
 2. Extract company, role and stage reliably with a local model; route uncertain cases to the user.
 3. Show the funnel and every application's history in a fast, clear UI.
 4. Keep all email content on the user's machine; store only short snippets.
-5. Start with one action (`start.bat` / `jobtracker ui`) and keep itself up to date in the background.
+5. Start with one action (`start.bat` / `piper ui`) and keep itself up to date in the background.
 
 **Non-goals**
 - Hosting, multi-user accounts or any cloud deployment.
@@ -92,8 +94,8 @@ Each feature lists what it does and how we know it works. ✅ = built, 🔜 = pl
   plain-text part); quoted reply history removed; Google redirect links unwrapped; hard-wrapped lines
   rejoined; truncated to ~4,000 characters.
 
-*Acceptance:* `jobtracker sync --dry-run` lists matched subjects with keep/drop decisions and writes
-nothing; running `jobtracker sync` twice in a row makes no LLM calls the second time.
+*Acceptance:* `piper sync --dry-run` lists matched subjects with keep/drop decisions and writes
+nothing; running `piper sync` twice in a row makes no LLM calls the second time.
 
 ### 6.2 Prefilter (rules before the LLM) ✅
 
@@ -229,12 +231,12 @@ view can be default.
 
 | Command | Purpose |
 |---|---|
-| `jobtracker ui [--browser] [--port N]` | Open the app |
-| `jobtracker sync [--dry-run] [--full]` | Fetch and extract |
-| `jobtracker doctor` | Check Ollama, the model and GPU use |
-| `jobtracker seed [--force]` | Load fictional sample data |
-| `jobtracker stats [--range …]` | Print funnel stats |
-| `jobtracker reset [--yes]` | Delete the database and Gmail token |
+| `piper ui [--browser] [--port N]` | Open the app |
+| `piper sync [--dry-run] [--full]` | Fetch and extract |
+| `piper doctor` | Check Ollama, the model and GPU use |
+| `piper seed [--force]` | Load fictional sample data |
+| `piper stats [--range …]` | Print funnel stats |
+| `piper reset [--yes]` | Delete the database and Gmail token |
 
 ---
 
@@ -253,7 +255,7 @@ Read from environment variables, then `<data dir>/.env`, then `./.env`.
 | `FOLLOW_COMPANY_DOMAINS` | true | Include all mail from companies in a hiring process |
 | `ALWAYS_INCLUDE` / `ALWAYS_IGNORE` | — | Comma-separated domains or addresses |
 | `never_job_subjects.txt` (file) | — | The user's own never-job subject patterns, one per line |
-| `JOBTRACKER_HOME` | `~/.jobtracker` | Data folder |
+| `PIPER_HOME` | `~/.piper` | Data folder |
 
 ## 8. Data model (SQLite)
 
@@ -288,7 +290,7 @@ filter parameters. Interactive docs at `/docs`.
 ## 11. Architecture
 
 ```
-jobtracker ui (one Python process)
+piper ui (one Python process)
 ├── pywebview window ──► http://127.0.0.1:<port>
 ├── FastAPI ── /api/*  JSON API          ── /  built React SPA
 └── APScheduler ──► pipeline.sync()
@@ -296,7 +298,7 @@ jobtracker ui (one Python process)
                      ├── prefilter (rules)
                      ├── extractor ──► Ollama (localhost:11434)
                      ├── resolver (merge into applications)
-                     └── SQLite (~/.jobtracker/jobs.db)
+                     └── SQLite (~/.piper/jobs.db)
 ```
 
 Frontend: Vite + React + TypeScript + Tailwind, ECharts (Sankey), TanStack Query.
@@ -310,10 +312,13 @@ Frontend: Vite + React + TypeScript + Tailwind, ECharts (Sankey), TanStack Query
 | 🔜 Kanban board | Stage columns; dragging a card sets a manual override |
 | 🔜 Insights view | Activity heatmap and response rate by source (`/api/insights` exists) |
 | 🔜 ⌘K command palette | Jump to a company, switch views, trigger a sync |
-| 🔜 `jobtracker eval` | Accuracy per field on labelled samples, to compare models |
+| 🔜 `piper eval` | Accuracy per field on labelled samples, to compare models |
 | 🔜 Anthropic provider | Optional cloud model behind `LLM_PROVIDER=anthropic` |
 | 🔜 Per-stage ghosting thresholds | e.g. shorter silence limits after interviews and offers |
 | 🔜 Upcoming interviews | Parse calendar invites for dates |
+| 🔜 Résumé generator | Tailored résumé versions per role from the Writing Studio knowledge base |
+| 🔜 Interview prep | Likely questions and matching stories from each company's thread and the knowledge base |
+| 🔜 Applying with you | Prepare applications for roles the user chooses; the user always reviews before anything is sent |
 | 🔜 Export | CSV / Markdown |
 | 🔜 One-click installer | Package with PyInstaller |
 

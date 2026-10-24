@@ -5,11 +5,11 @@ from datetime import datetime
 import pytest
 from sqlmodel import Session, select
 
-from jobtracker import gmail_client
-from jobtracker.db import Application, Email, Event, ReviewItem, get_engine, get_state
-from jobtracker.gmail_client import ThreadInfo, strip_quoted
-from jobtracker.pipeline import sync
-from jobtracker.schema import JobEvent, RawEmail
+from piper_jobs import gmail_client
+from piper_jobs.db import Application, Email, Event, ReviewItem, get_engine, get_state
+from piper_jobs.gmail_client import ThreadInfo, strip_quoted
+from piper_jobs.pipeline import sync
+from piper_jobs.schema import JobEvent, RawEmail
 
 ME = "Alex <alex@example.com>"
 
@@ -168,7 +168,7 @@ def test_not_job_from_known_company_is_rechecked_after_upgrade(settings, northst
     model.answers["inv"] = ev(job=False, conf=0.9)  # an older prompt got the invite wrong
     sync(settings, service=object(), extractor=model)
 
-    monkeypatch.setattr("jobtracker.pipeline.PROMPT_VERSION", 999)  # prompt improved
+    monkeypatch.setattr("piper_jobs.pipeline.PROMPT_VERSION", 999)  # prompt improved
     model.answers["inv"] = ev("Northstar", "interview", conf=0.85)
     model.calls.clear()
     sync(settings, service=object(), extractor=model)
@@ -179,7 +179,7 @@ def test_not_job_from_known_company_is_rechecked_after_upgrade(settings, northst
 
 def test_rescan_handles_reviewed_emails(settings, northstar, monkeypatch):
     """A filter change must not crash on emails that have review history, and must keep your decisions."""
-    from jobtracker.db import ReviewItem
+    from piper_jobs.db import ReviewItem
 
     fake, model = northstar
     sync(settings, service=object(), extractor=model)
@@ -192,7 +192,7 @@ def test_rescan_handles_reviewed_emails(settings, northstar, monkeypatch):
         s.add(ReviewItem(email_id="inv", reason="Not sure if this is about a job", resolved=True))
         s.commit()
 
-    monkeypatch.setattr("jobtracker.pipeline.PROMPT_VERSION", 999)  # filters/prompt changed → re-scan
+    monkeypatch.setattr("piper_jobs.pipeline.PROMPT_VERSION", 999)  # filters/prompt changed → re-scan
     model.calls.clear()
     sync(settings, service=object(), extractor=model)  # used to raise IntegrityError (FOREIGN KEY)
 

@@ -1,9 +1,9 @@
 from datetime import datetime, timedelta
 
-from jobtracker.filters import Filters, load_rows
-from jobtracker.resolver import apply_event
-from jobtracker.sankey import build_sankey, path_for
-from jobtracker.stages import compute_current_stage, effective_stage
+from piper_jobs.filters import Filters, load_rows
+from piper_jobs.resolver import apply_event
+from piper_jobs.sankey import build_sankey, path_for
+from piper_jobs.stages import compute_current_stage, effective_stage
 
 T0 = datetime(2026, 5, 1)
 d = lambda n: T0 + timedelta(days=n)  # noqa: E731

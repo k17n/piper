@@ -17,7 +17,7 @@ function fmtDateTime(iso: string) {
   });
 }
 
-const ORDER_KEY = "jt-thread-order";
+const ORDER_KEY = "piper-thread-order";
 type Order = "newest" | "oldest";
 
 function useThreadOrder(): [Order, (o: Order) => void] {

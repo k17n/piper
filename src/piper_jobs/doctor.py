@@ -1,4 +1,4 @@
-"""`jobtracker doctor`: check Ollama is reachable, the model is pulled, and it runs on the GPU."""
+"""`piper doctor`: check Ollama is reachable, the model is pulled, and it runs on the GPU."""
 
 from __future__ import annotations
 

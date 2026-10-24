@@ -5,7 +5,7 @@ import tailwindcss from "@tailwindcss/vite";
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   build: {
-    outDir: "../src/jobtracker/static",
+    outDir: "../src/piper_jobs/static",
     emptyOutDir: true,
     chunkSizeWarningLimit: 1500,
   },

@@ -17,7 +17,7 @@ build/
 # Frontend
 web/node_modules/
 web/dist/
-src/jobtracker/static/
+src/piper_jobs/static/
 
 # Editors / OS
 .vscode/

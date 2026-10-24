@@ -38,7 +38,7 @@ def get_service(settings: Settings, interactive: bool = True):
             creds.refresh(Request())
         else:
             if not interactive:
-                raise GmailNotConfigured("Gmail is not connected yet. Run `jobtracker sync` once.")
+                raise GmailNotConfigured("Gmail is not connected yet. Run `piper sync` once.")
             if not settings.credentials_path.is_file():
                 raise GmailNotConfigured(
                     f"No OAuth client found at {settings.credentials_path}. "

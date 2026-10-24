@@ -3,8 +3,8 @@ from __future__ import annotations
 import pytest
 from sqlmodel import Session
 
-from jobtracker.config import Settings
-from jobtracker.db import dispose_engine, get_engine
+from piper_jobs.config import Settings
+from piper_jobs.db import dispose_engine, get_engine
 
 
 @pytest.fixture
