@@ -305,6 +305,7 @@ Frontend: Vite + React + TypeScript + Tailwind, ECharts (Sankey), TanStack Query
 
 | Item | Notes |
 |---|---|
+| 🔜 **Writing Studio** | Grounded cover letters, LinkedIn, WhatsApp and email drafts from a local knowledge base, stored as threads with memory across sessions — see [PRD-writing-studio.md](PRD-writing-studio.md) |
 | 🔜 In-app **Connect Gmail** / "Sign in with Google" button | Removes the command-line step; optional bundled OAuth client for small groups (Google limits unverified apps to 100 test users with weekly re-sign-in) |
 | 🔜 Kanban board | Stage columns; dragging a card sets a manual override |
 | 🔜 Insights view | Activity heatmap and response rate by source (`/api/insights` exists) |
