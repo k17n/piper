@@ -1,4 +1,8 @@
-# Piper
+<p align="center">
+  <img src="docs/assets/piper-wordmark.svg" alt="P.I.P.E.R. — Pipeline · Interviews · Pitches · Emails · Résumés" width="440">
+</p>
+
+# P.I.P.E.R.
 
 **P**ipeline · **I**nterviews · **P**itches · **E**mails · **R**ésumés
 

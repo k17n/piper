@@ -1,4 +1,4 @@
-# Piper — Product Requirements Document
+# P.I.P.E.R. — Product Requirements Document
 
 > **P**ipeline · **I**nterviews · **P**itches · **E**mails · **R**ésumés — a private, local job-search assistant.
 

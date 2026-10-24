@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 132" role="img" aria-label="P.I.P.E.R. — Pipeline · Interviews · Pitches · Emails · Résumés">
+  <title>P.I.P.E.R.</title>
+  <!-- Blue tones chosen to read on both light and dark backgrounds. -->
+  <text x="260" y="78" text-anchor="middle"
+        font-family="Segoe UI, Inter, Helvetica Neue, Helvetica, Arial, sans-serif"
+        font-size="72" font-weight="700" letter-spacing="6" fill="#3987e5">P<tspan fill="#8fb8f0">.</tspan>I<tspan fill="#8fb8f0">.</tspan>P<tspan fill="#8fb8f0">.</tspan>E<tspan fill="#8fb8f0">.</tspan>R<tspan fill="#8fb8f0">.</tspan></text>
+  <text x="260" y="116" text-anchor="middle"
+        font-family="Segoe UI, Inter, Helvetica Neue, Helvetica, Arial, sans-serif"
+        font-size="18" letter-spacing="1.5" fill="#8b949e">Pipeline · Interviews · Pitches · Emails · Résumés</text>
+</svg>

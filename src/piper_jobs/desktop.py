@@ -56,7 +56,7 @@ def run_ui(settings: Settings, *, browser: bool = False, port: int | None = None
             try:
                 import webview
 
-                webview.create_window("Piper", url, width=1440, height=920, min_size=(900, 600))
+                webview.create_window("P.I.P.E.R.", url, width=1440, height=920, min_size=(900, 600))
                 webview.start()
                 return
             except Exception as exc:  # no GUI backend available → fall back to the browser

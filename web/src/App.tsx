@@ -12,6 +12,24 @@ import { ReviewQueue } from "./components/ReviewQueue";
 import { SyncIndicator } from "./components/SyncIndicator";
 import { Button, Empty, cx } from "./components/ui";
 
+/** The brand: P.I.P.E.R. (Pipeline, Interviews, Pitches, Emails & Résumés), dots in the accent color. */
+function Wordmark() {
+  return (
+    <div
+      className="flex items-baseline text-lg font-bold tracking-[0.08em] text-ink"
+      aria-label="P.I.P.E.R."
+      title="Pipeline · Interviews · Pitches · Emails · Résumés"
+    >
+      {"PIPER".split("").map((letter, i) => (
+        <span key={i} aria-hidden>
+          {letter}
+          <span className="text-accent">.</span>
+        </span>
+      ))}
+    </div>
+  );
+}
+
 function useTheme() {
   const [dark, setDark] = useState(() => document.documentElement.classList.contains("dark"));
   const toggle = () => {
@@ -69,9 +87,9 @@ export default function App() {
   return (
     <div className="flex h-full">
       <aside className="hidden w-56 shrink-0 flex-col border-r border-line bg-surface/60 px-3 py-4 md:flex">
-        <div className="mb-6 flex items-center gap-2 px-2">
-          <div className="grid h-7 w-7 place-items-center rounded-lg bg-accent text-sm font-bold text-accent-ink">P</div>
-          <div className="text-sm font-semibold text-ink">Piper</div>
+        <div className="mb-6 px-2">
+          <Wordmark />
+          <div className="mt-0.5 text-[11px] text-muted">Your job-search assistant</div>
         </div>
         <nav className="flex flex-col gap-0.5">
           {NAV.map((n) => (

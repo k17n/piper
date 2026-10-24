@@ -1,9 +1,9 @@
-# Writing Studio — Feature PRD
+# P.I.P.E.R. Writing Studio — Feature PRD
 
 | | |
 |---|---|
 | **Status** | Draft — not built |
-| **Parent** | [Piper PRD](PRD.md), §12 Roadmap |
+| **Parent** | [P.I.P.E.R. PRD](PRD.md), §12 Roadmap |
 | **Runs on** | The same local stack: Ollama (chat + embedding models), SQLite, the existing app UI |
 | **Privacy** | Fully local. Knowledge files, drafts and memories never leave the machine or enter the repository |
 

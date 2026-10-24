@@ -130,7 +130,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     with Session(engine) as session:  # fill in role types (new column) and apply rule updates
         recompute_all_categories(session)
 
-    app = FastAPI(title="Piper", version="0.1.0")
+    app = FastAPI(title="P.I.P.E.R.", version="0.1.0")
     app.state.settings = settings
     app.state.runner = runner
 
