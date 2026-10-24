@@ -104,6 +104,17 @@ export function ApplicationsTable({ apps, onOpen }: { apps: Application[]; onOpe
                 <button onClick={() => onOpen(a)} className="text-left font-medium text-ink hover:text-accent hover:underline">
                   {a.company}
                 </button>
+                {a.job_url && (
+                  <a
+                    href={a.job_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    title={`Job posting: ${a.job_url}`}
+                    className="ml-1.5 text-xs text-muted hover:text-accent"
+                  >
+                    ↗
+                  </a>
+                )}
               </td>
               <td className="max-w-64 px-1 py-1">
                 <RoleCell key={`${a.id}-${a.role}`} app={a} />

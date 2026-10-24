@@ -112,6 +112,7 @@ export interface Application {
   manual_override: boolean;
   category: Category;
   category_manual: boolean;
+  job_url: string;
   first_seen: string;
   last_event_at: string;
   notes: string;
@@ -220,6 +221,7 @@ export const api = {
       stage?: Stage;
       notes?: string;
       role?: string;
+      job_url?: string;
       manual_override?: boolean;
       category?: Category;
       category_auto?: boolean;
@@ -233,6 +235,7 @@ export const api = {
     stage: Stage;
     applied_on: string;
     notes?: string;
+    job_url?: string;
   }) => http<Application>("/api/applications", { method: "POST", body: json(body) }),
   logUpdate: (id: number, body: { stage: Stage; occurred_on: string; note?: string }) =>
     http<Application>(`/api/applications/${id}/events`, { method: "POST", body: json(body) }),

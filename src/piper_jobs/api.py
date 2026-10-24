@@ -11,6 +11,7 @@ from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from typing import Literal
+from urllib.parse import urlparse
 
 from pydantic import BaseModel
 from sqlalchemy import func
@@ -51,6 +52,7 @@ class ApplicationPatch(BaseModel):
     category: Literal["design", "product", "vc", "other"] | None = None  # sets it by hand
     category_auto: bool | None = None  # true goes back to the automatic role type
     role: str | None = None  # name the role, e.g. for a confirmation that didn't say which one
+    job_url: str | None = None  # link to the posting; "" removes it
 
 
 class ApplicationIn(BaseModel):
@@ -61,6 +63,7 @@ class ApplicationIn(BaseModel):
     stage: Stage = Stage.applied
     applied_on: date
     notes: str = ""
+    job_url: str = ""
 
 
 class UpdateIn(BaseModel):
@@ -89,6 +92,19 @@ class ViewPatch(BaseModel):
     name: str | None = None
     filters: Filters | None = None
     is_default: bool | None = None
+
+
+def clean_job_url(raw: str) -> str:
+    """A web link or nothing: adds https:// when the scheme is missing, rejects anything else."""
+    url = raw.strip()
+    if not url:
+        return ""
+    if "://" not in url:
+        url = "https://" + url
+    parsed = urlparse(url)
+    if parsed.scheme not in ("http", "https") or "." not in parsed.netloc:
+        raise HTTPException(422, "The job posting URL should be a web link, e.g. https://jobs.example.com/123")
+    return url
 
 
 def get_filters(
@@ -131,6 +147,7 @@ def application_json(row: AppRow, emails: dict[str, Email] | None = None, accoun
         "current_stage": a.current_stage,
         "manual_override": a.manual_override,
         "category": a.category,
+        "job_url": a.job_url,
         "category_manual": a.category_manual,
         "first_seen": a.first_seen.isoformat(),
         "last_event_at": a.last_event_at.isoformat(),
@@ -247,6 +264,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         company = body.company.strip()
         if not company:
             raise HTTPException(422, "Company is required")
+        job_url = clean_job_url(body.job_url)  # validate before anything is created
         when = datetime.combine(body.applied_on, datetime.min.time()) + timedelta(hours=12)
         a = apply_event(session, company=company, role=(body.role or "").strip() or None, stage="applied",
                         source=body.source, occurred_at=when, note="Added by hand")
@@ -255,6 +273,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                         occurred_at=when, application_id=a.id, note="Stage when added")
         if body.notes:
             a.notes = body.notes
+        a.job_url = job_url
         session.commit()
         session.refresh(a)
         return application_response(session, a)
@@ -294,6 +313,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             raise HTTPException(404, "Application not found")
         if body.notes is not None:
             a.notes = body.notes
+        if body.job_url is not None:
+            a.job_url = clean_job_url(body.job_url)
         if body.role is not None:
             a.role_display, a.role_norm = body.role.strip(), normalize_role(body.role)
             recompute_category(session, a)

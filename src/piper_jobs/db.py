@@ -43,6 +43,7 @@ class Application(SQLModel, table=True):
     manual_override: bool = False
     category: str = "other"  # design | product | vc | other
     category_manual: bool = False  # set by you: later emails won't change it
+    job_url: str = ""  # link to the job posting, added by you (never fetched)
     notes: str = ""
 
 
@@ -114,6 +115,7 @@ _ADDED_COLUMNS = [
     ("applications", "category", "VARCHAR NOT NULL DEFAULT 'other'"),
     ("applications", "category_manual", "BOOLEAN NOT NULL DEFAULT 0"),
     ("events", "note", "TEXT NOT NULL DEFAULT ''"),
+    ("applications", "job_url", "TEXT NOT NULL DEFAULT ''"),
 ]
 
 

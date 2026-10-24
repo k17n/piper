@@ -25,6 +25,7 @@ export function AddApplication({ onClose, onAdded }: { onClose: () => void; onAd
     stage: "applied" as Stage,
     applied_on: today(),
     notes: "",
+    job_url: "",
   });
   const [error, setError] = useState<string | null>(null);
   const add = useMutation({
@@ -64,6 +65,20 @@ export function AddApplication({ onClose, onAdded }: { onClose: () => void; onAd
           </Field>
           <Field label="Role">
             <input value={form.role} onChange={(e) => set({ role: e.target.value })} placeholder="e.g. Senior Product Designer" className="h-9 px-3" />
+          </Field>
+          <Field label="Job posting URL (optional)">
+            <input
+              type="text"
+              inputMode="url"
+              value={form.job_url}
+              onChange={(e) => set({ job_url: e.target.value })}
+              onBlur={(e) => {
+                const v = e.target.value.trim();
+                if (v && !v.includes("://")) set({ job_url: `https://${v}` });
+              }}
+              placeholder="https://careers.example.com/jobs/123"
+              className="h-9 px-3"
+            />
           </Field>
           <div className="grid grid-cols-2 gap-3">
             <Field label="How you applied">

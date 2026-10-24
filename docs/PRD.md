@@ -191,7 +191,7 @@ view can be default.
 - Sortable columns: company, role, type, source, stage, applied date, last update.
 - Inline editing: role, stage (sets a manual override, clearable), role type, notes.
 - Clicking a company opens the application detail panel.
-- **Add application** (for ones with no email): company, role, source (incl. Referral), date applied,
+- **Add application** (for ones with no email): company, role, optional job posting URL, source (incl. Referral), date applied,
   current stage, notes. Later emails from the company attach to it instead of creating a duplicate.
 - **Log an update** in the detail panel: stage, date and a note for things that happened off email;
   it appears on the timeline and moves the stage like an email would.

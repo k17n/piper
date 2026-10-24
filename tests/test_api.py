@@ -189,3 +189,19 @@ def test_add_application_starting_at_a_later_stage(client):
                                                   "stage": "interview"}).json()
     assert app["stage"] == "interview" and app["role"] == ""
     assert client.post("/api/applications", json={"company": "  ", "applied_on": str(date.today())}).status_code == 422
+
+
+def test_job_posting_url(client):
+    from datetime import date
+
+    app = client.post("/api/applications", json={
+        "company": "Fernway", "applied_on": str(date.today()), "job_url": "careers.fernway.example/jobs/42"}).json()
+    assert app["job_url"] == "https://careers.fernway.example/jobs/42"  # scheme added
+
+    r = client.patch(f"/api/applications/{app['id']}", json={"job_url": "http://jobs.example.org/7"})
+    assert r.json()["job_url"] == "http://jobs.example.org/7"
+    assert client.patch(f"/api/applications/{app['id']}", json={"job_url": "javascript:alert(1)"}).status_code == 422
+    assert client.patch(f"/api/applications/{app['id']}", json={"job_url": "not a link"}).status_code == 422
+    assert client.patch(f"/api/applications/{app['id']}", json={"job_url": ""}).json()["job_url"] == ""
+    assert client.post("/api/applications", json={"company": "Fernway", "applied_on": str(date.today()),
+                                                  "job_url": "ftp://x.example"}).status_code == 422

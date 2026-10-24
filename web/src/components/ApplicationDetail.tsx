@@ -100,6 +100,72 @@ function Thread({ emailId, order, setOrder }: { emailId: string; order: Order; s
   );
 }
 
+function JobLink({ app, onSaved }: { app: Application; onSaved: (a: Application) => void }) {
+  const qc = useQueryClient();
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(app.job_url);
+  const [error, setError] = useState<string | null>(null);
+  const save = useMutation({
+    mutationFn: (job_url: string) => api.patchApplication(app.id, { job_url }),
+    onSuccess: (a) => {
+      qc.invalidateQueries({ queryKey: ["applications"] });
+      onSaved(a);
+      setEditing(false);
+      setError(null);
+    },
+    onError: (e: Error) => setError(e.message),
+  });
+
+  if (editing) {
+    return (
+      <form
+        className="mt-2 flex flex-wrap items-center gap-2"
+        onSubmit={(e) => {
+          e.preventDefault();
+          save.mutate(value.trim());
+        }}
+      >
+        <input
+          autoFocus
+          type="text"
+          inputMode="url"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          onKeyDown={(e) => e.key === "Escape" && setEditing(false)}
+          placeholder="https://careers.example.com/jobs/123"
+          className="h-8 min-w-56 flex-1 px-2 text-sm"
+          aria-label="Job posting URL"
+        />
+        <Button type="submit" variant="primary" className="h-8" disabled={save.isPending}>
+          Save
+        </Button>
+        <Button className="h-8" onClick={() => setEditing(false)}>
+          Cancel
+        </Button>
+        {error && <div className="w-full text-xs text-[#d03b3b]">{error}</div>}
+      </form>
+    );
+  }
+  return (
+    <div className="mt-1.5 flex items-center gap-2 text-sm">
+      {app.job_url ? (
+        <>
+          <a href={app.job_url} target="_blank" rel="noreferrer" title={app.job_url} className="min-w-0 truncate font-medium text-accent hover:underline">
+            Job posting ↗
+          </a>
+          <button onClick={() => setEditing(true)} className="text-xs text-muted hover:text-ink" title="Edit the link">
+            Edit
+          </button>
+        </>
+      ) : (
+        <button onClick={() => setEditing(true)} className="text-xs text-muted hover:text-ink">
+          + Add job posting link
+        </button>
+      )}
+    </div>
+  );
+}
+
 function LogUpdate({ app, onLogged }: { app: Application; onLogged: (a: Application) => void }) {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
@@ -191,6 +257,7 @@ export function ApplicationDetail({ app: initial, onClose }: { app: Application;
             <div className="truncate text-sm text-ink-2">
               {app.role || "Role not stated"} · {sourceLabel(app.source)}
             </div>
+            <JobLink key={app.job_url} app={app} onSaved={setApp} />
           </div>
           <div className="flex shrink-0 items-center gap-2">
             <StageBadge stage={app.stage} override={app.manual_override} />
