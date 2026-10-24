@@ -17,12 +17,13 @@ from sqlalchemy import func
 from sqlmodel import Session, select
 
 from .config import Settings, load_settings
-from .db import Application, Email, Event, ReviewItem, SavedView, get_engine, get_state, utcnow
+from .db import Application, Email, Event, ReviewItem, SavedView, get_engine, get_state, set_state, utcnow
 from . import gmail_client
 from .gmail_client import message_url
 from .filters import AppRow, Filters, RangeKey, load_rows
 from .pipeline import SyncRunner
-from .resolver import apply_event, recompute_all_categories, recompute_category, recompute_stage
+from .resolver import (apply_event, normalize_role, recompute_all_categories, recompute_category,
+                       recompute_stage, split_merged_confirmations)
 from .sankey import build_sankey
 from .schema import Source, Stage
 from .stats import compute_insights, compute_stats
@@ -49,6 +50,7 @@ class ApplicationPatch(BaseModel):
     manual_override: bool | None = None  # false clears the override and recomputes
     category: Literal["design", "product", "vc", "other"] | None = None  # sets it by hand
     category_auto: bool | None = None  # true goes back to the automatic role type
+    role: str | None = None  # name the role, e.g. for a confirmation that didn't say which one
 
 
 class ResolveIn(BaseModel):
@@ -57,6 +59,7 @@ class ResolveIn(BaseModel):
     role: str | None = None
     stage: Stage | None = None
     source: Source | None = None
+    application_id: int | None = None  # attach to this application (when the email named no role)
 
 
 class ViewIn(BaseModel):
@@ -129,6 +132,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     runner = SyncRunner(settings)
     with Session(engine) as session:  # fill in role types (new column) and apply rule updates
         recompute_all_categories(session)
+        if not get_state(session, "split_confirmations_v1"):  # one-time repair, see resolver
+            split_merged_confirmations(session)
+            set_state(session, "split_confirmations_v1", utcnow().isoformat())
+            session.commit()
 
     app = FastAPI(title="P.I.P.E.R.", version="0.1.0")
     app.state.settings = settings
@@ -219,6 +226,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             raise HTTPException(404, "Application not found")
         if body.notes is not None:
             a.notes = body.notes
+        if body.role is not None:
+            a.role_display, a.role_norm = body.role.strip(), normalize_role(body.role)
+            recompute_category(session, a)
         if body.category is not None:
             a.category, a.category_manual = body.category, True
         elif body.category_auto:
@@ -249,6 +259,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 "id": item.id,
                 "reason": item.reason,
                 "extracted": item.extracted,
+                "candidates": [
+                    {"id": a.id, "role": a.role_display, "stage": a.current_stage,
+                     "first_seen": a.first_seen.isoformat()}
+                    for cid in (item.extracted or {}).get("candidates", [])
+                    if (a := session.get(Application, cid)) is not None
+                ],
                 "email": {
                     "id": email.id, "from": email.from_addr, "subject": email.subject,
                     "received_at": email.received_at.isoformat(), "snippet": email.snippet,
@@ -267,8 +283,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         if body.action == "apply":
             if not body.company or not body.stage:
                 raise HTTPException(422, "company and stage are required")
-            apply_event(session, company=body.company, role=body.role, stage=body.stage.value,
-                        source=body.source, occurred_at=email.received_at, email_id=email.id)
+            target = session.get(Application, body.application_id) if body.application_id else None
+            if body.application_id and target is None:
+                raise HTTPException(404, "Application not found")
+            apply_event(session, company=target.company_display if target else body.company, role=body.role,
+                        stage=body.stage.value, source=body.source, occurred_at=email.received_at,
+                        email_id=email.id, application_id=body.application_id)
             email.llm_status = "ok"
         else:
             email.llm_status = "not_job"

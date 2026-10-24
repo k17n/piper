@@ -200,3 +200,34 @@ def test_rescan_handles_reviewed_emails(settings, northstar, monkeypatch):
     with Session(get_engine(settings.db_path)) as s:
         assert s.get(Email, "inv").llm_status == "not_job"
         assert s.get(Email, "promo").llm_status == "skipped"  # re-checked, still skipped by the rules
+
+
+def test_roleless_update_with_several_open_applications_asks_which(settings, monkeypatch):
+    from piper_jobs.api import create_app
+    from fastapi.testclient import TestClient
+
+    sender = "Wonka Labs <no-reply@wonkalabs.example>"
+    emails = [mail("a1", sender, "Thanks for applying", 1), mail("a2", sender, "Thanks for applying", 1),
+              mail("rej", sender, "Your application", 9, "Unfortunately we will not move forward.")]
+    FakeGmail(emails, by_query={"newer_than": ["a1", "a2", "rej"]}).install(monkeypatch)
+    settings.include_sent_threads = settings.follow_company_domains = False
+    model = FakeModel({"a1": ev("Wonka Labs", "applied", source="ats"), "a2": ev("Wonka Labs", "applied", source="ats"),
+                       "rej": ev("Wonka Labs", "rejected", source="ats")})
+    sync(settings, service=object(), extractor=model)
+
+    with TestClient(create_app(settings)) as client:
+        apps = client.get("/api/applications", params={"range": "all"}).json()
+        assert len(apps) == 2 and all(a["current_stage"] == "applied" for a in apps)  # rejection not guessed
+        item = client.get("/api/review-queue").json()[0]
+        assert item["reason"] == "Which Wonka Labs application is this about?"
+        assert sorted(c["id"] for c in item["candidates"]) == sorted(a["id"] for a in apps)
+
+        chosen = item["candidates"][1]["id"]
+        r = client.post(f"/api/review-queue/{item['id']}/resolve",
+                        json={"action": "apply", "company": "Wonka Labs", "stage": "rejected", "application_id": chosen})
+        assert r.status_code == 200
+        stages = {a["id"]: a["current_stage"] for a in client.get("/api/applications", params={"range": "all"}).json()}
+        assert stages[chosen] == "rejected" and list(stages.values()).count("applied") == 1
+
+        r = client.patch(f"/api/applications/{chosen}", json={"role": "Product Designer"})
+        assert r.json()["role"] == "Product Designer" and r.json()["category"] == "design"

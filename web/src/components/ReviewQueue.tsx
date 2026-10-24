@@ -13,6 +13,8 @@ function ReviewCard({ item }: { item: ReviewItem }) {
     stage: ex.stage ?? "applied",
     source: ex.source ?? "other",
   });
+  // "" = a new application; otherwise the id of the application this email belongs to
+  const [target, setTarget] = useState<string>(item.candidates.length ? String(item.candidates[0].id) : "");
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
   const resolve = useMutation({
@@ -57,9 +59,29 @@ function ReviewCard({ item }: { item: ReviewItem }) {
         className="flex flex-wrap items-center gap-2 [&>input]:min-w-36 [&>input]:flex-1 [&>select]:w-32"
         onSubmit={(e) => {
           e.preventDefault();
-          resolve.mutate({ action: "apply", ...form, role: form.role || null });
+          resolve.mutate({
+            action: "apply",
+            ...form,
+            role: form.role || null,
+            application_id: target ? Number(target) : null,
+          });
         }}
       >
+        {item.candidates.length > 0 && (
+          <select
+            value={target}
+            onChange={(e) => setTarget(e.target.value)}
+            className="h-8 !w-full px-2 text-sm"
+            aria-label="Which application"
+          >
+            {item.candidates.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.role || "Role not stated"} · applied {fmtDate(c.first_seen)} · {stageLabel(c.stage)}
+              </option>
+            ))}
+            <option value="">A new application</option>
+          </select>
+        )}
         <input required placeholder="Company" value={form.company} onChange={(e) => setForm({ ...form, company: e.target.value })} className="h-8 px-2 text-sm" />
         <input placeholder="Role" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} className="h-8 px-2 text-sm" />
         <select value={form.stage} onChange={(e) => setForm({ ...form, stage: e.target.value })} className="h-8 px-2 text-sm">

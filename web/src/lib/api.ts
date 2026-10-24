@@ -142,10 +142,18 @@ export interface EmailThread {
   messages: ThreadMessage[];
 }
 
+export interface ReviewCandidate {
+  id: number;
+  role: string;
+  stage: Stage;
+  first_seen: string;
+}
+
 export interface ReviewItem {
   id: number;
   reason: string;
   extracted: Record<string, unknown> | null;
+  candidates: ReviewCandidate[];
   email: {
     id: string;
     from: string;
@@ -207,7 +215,14 @@ export const api = {
   },
   patchApplication: (
     id: number,
-    body: { stage?: Stage; notes?: string; manual_override?: boolean; category?: Category; category_auto?: boolean },
+    body: {
+      stage?: Stage;
+      notes?: string;
+      role?: string;
+      manual_override?: boolean;
+      category?: Category;
+      category_auto?: boolean;
+    },
   ) =>
     http<Application>(`/api/applications/${id}`, { method: "PATCH", body: json(body) }),
   thread: (emailId: string) => http<EmailThread>(`/api/emails/${emailId}/thread`),

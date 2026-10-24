@@ -14,7 +14,7 @@ from .db import Application, Email, Event, ReviewItem, get_engine, get_state, se
 from .llm import ExtractionError, Extractor, get_extractor
 from .llm.prompt import PROMPT_VERSION
 from .prefilter import RULES_VERSION, should_process
-from .resolver import apply_event
+from .resolver import ambiguous_applications, apply_event
 from .schema import RawEmail, Stage
 
 Progress = Callable[[dict[str, Any]], None]
@@ -111,6 +111,9 @@ def process_email(
                 _review(session, email, raw, "Low confidence", extracted)
             elif not event.company or not event.stage:
                 _review(session, email, raw, "Couldn't tell the company or stage", extracted)
+            elif options := ambiguous_applications(session, event.company, event.role, event.stage.value):
+                extracted["candidates"] = [a.id for a in options]
+                _review(session, email, raw, f"Which {options[0].company_display} application is this about?", extracted)
             else:
                 email.llm_status = "ok"
                 session.add(email)

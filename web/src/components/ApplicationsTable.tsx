@@ -16,6 +16,26 @@ const COLUMNS: { key: SortKey; label: string }[] = [
   { key: "last_event_at", label: "Last update" },
 ];
 
+function RoleCell({ app }: { app: Application }) {
+  const qc = useQueryClient();
+  const [value, setValue] = useState(app.role);
+  const save = useMutation({
+    mutationFn: (role: string) => api.patchApplication(app.id, { role }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["applications"] }),
+  });
+  return (
+    <input
+      value={value}
+      onChange={(e) => setValue(e.target.value)}
+      onBlur={() => value.trim() !== app.role && save.mutate(value.trim())}
+      onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
+      placeholder="Role not stated — add it"
+      title={value}
+      className="h-7 w-full min-w-40 truncate border-transparent bg-transparent px-2 text-sm text-ink-2 hover:border-line focus:bg-surface-2"
+    />
+  );
+}
+
 function NotesCell({ app }: { app: Application }) {
   const qc = useQueryClient();
   const [value, setValue] = useState(app.notes);
@@ -85,7 +105,9 @@ export function ApplicationsTable({ apps, onOpen }: { apps: Application[]; onOpe
                   {a.company}
                 </button>
               </td>
-              <td className="max-w-64 truncate px-3 py-2 text-ink-2">{a.role || "—"}</td>
+              <td className="max-w-64 px-1 py-1">
+                <RoleCell key={`${a.id}-${a.role}`} app={a} />
+              </td>
               <td className="px-3 py-2">
                 <div className="flex items-center gap-1">
                   <select

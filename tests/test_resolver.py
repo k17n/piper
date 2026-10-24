@@ -74,3 +74,48 @@ def test_manual_override_is_respected(session):
     apply_event(session, company="Umbrella Health", role="SWE", stage="rejected", source="ats",
                 occurred_at=T0 + timedelta(days=3))
     assert a.current_stage == "offer"
+
+
+def _email(session, id, sender, day, subject="Thanks for applying"):
+    from piper_jobs.db import Email
+
+    session.add(Email(id=id, from_addr=sender, subject=subject, received_at=T0 + timedelta(days=day)))
+    session.flush()
+
+
+def test_identical_roleless_confirmations_are_separate_applications(session):
+    """Applying to three roles back to back: the company sends the same email three times."""
+    for i, day in enumerate([0, 25, 25]):
+        _email(session, f"c{i}", "Wonka Labs <no-reply@wonkalabs.example>", day)
+        apply_event(session, company="Wonka Labs", role=None, stage="applied", source="ats",
+                    occurred_at=T0 + timedelta(days=day, minutes=i), email_id=f"c{i}")
+    assert len(session.exec(select(Application)).all()) == 3
+
+
+def test_linkedin_notice_and_company_confirmation_are_one_application(session):
+    _email(session, "li", "LinkedIn <jobs-noreply@linkedin.com>", 0, "Your application was sent to Wonka Labs")
+    apply_event(session, company="Wonka Labs", role="Product Designer", stage="applied", source="linkedin",
+                occurred_at=T0, email_id="li")
+    _email(session, "co", "Wonka Labs <no-reply@wonkalabs.example>", 0)
+    apply_event(session, company="Wonka Labs", role=None, stage="applied", source="ats",
+                occurred_at=T0 + timedelta(hours=2), email_id="co")
+    apps = session.exec(select(Application)).all()
+    assert len(apps) == 1 and apps[0].role_display == "Product Designer"
+
+
+def test_split_merged_confirmations_repairs_old_data(session):
+    from piper_jobs.db import Event
+    from piper_jobs.resolver import split_merged_confirmations
+
+    app = apply_event(session, company="Wonka Labs", role=None, stage="applied", source="ats", occurred_at=T0)
+    app.notes, app.manual_override, app.current_stage = "keep me", True, "rejected"
+    for i in range(3):  # what older versions did: three identical confirmations on one application
+        _email(session, f"m{i}", "Wonka Labs <no-reply@wonkalabs.example>", i)
+        session.add(Event(email_id=f"m{i}", application_id=app.id, stage="applied", occurred_at=T0 + timedelta(days=i)))
+    session.commit()
+
+    assert split_merged_confirmations(session) == 2
+    apps = session.exec(select(Application).order_by(Application.id)).all()
+    assert len(apps) == 3
+    assert (apps[0].notes, apps[0].current_stage) == ("keep me", "rejected")  # your edits stay put
+    assert split_merged_confirmations(session) == 0  # idempotent

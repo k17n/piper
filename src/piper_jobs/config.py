@@ -21,7 +21,16 @@ SUBJECT_TERMS = [
     "candidature", "shortlisted", '"next steps"', "invitation", '"appointment booked"',
     '"take-home"', '"case study"', '"design challenge"', "assignment",
 ]
-GMAIL_QUERY = f"(from:({' OR '.join(JOB_PLATFORMS)}) OR subject:({' OR '.join(SUBJECT_TERMS)}))"
+# Matched anywhere in the email, for companies whose subject is just the job title.
+BODY_PHRASES = [
+    '"thank you for applying"', '"thanks for applying"', '"thank you for your application"',
+    '"received your application"', '"your application for"', '"not to move forward"',
+    '"move forward with other candidates"',
+]
+GMAIL_QUERY = (
+    f"(from:({' OR '.join(JOB_PLATFORMS)}) OR subject:({' OR '.join(SUBJECT_TERMS)}) "
+    f"OR {' OR '.join(BODY_PHRASES)})"
+)
 
 
 LEGACY_DATA_DIR = Path.home() / ".jobtracker"  # the folder used before the app was named Piper
