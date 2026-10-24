@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import ReactECharts from "echarts-for-react";
 import type { SankeyData } from "../lib/api";
 import { SOURCE_COLOR, stageColor } from "../lib/stages";
@@ -12,7 +12,22 @@ function cssVar(name: string) {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 }
 
+// Filter bar, KPI cards and the funnel card's header + padding sit above/around the chart.
+const CHROME_ABOVE_CHART = 300;
+
+function useViewportHeight() {
+  const [height, setHeight] = useState(() => window.innerHeight);
+  useEffect(() => {
+    const onResize = () => setHeight(window.innerHeight);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+  return height;
+}
+
 export function SankeyChart({ data, dark, onSelect }: { data: SankeyData; dark: boolean; onSelect: (s: Selection) => void }) {
+  // Fill the window's remaining height so the funnel isn't squashed into the top half of the screen.
+  const viewportHeight = useViewportHeight();
   const { option, nodeIds } = useMemo(() => {
     const ink = cssVar("--text");
     const ink2 = cssVar("--text-2");
@@ -37,6 +52,7 @@ export function SankeyChart({ data, dark, onSelect }: { data: SankeyData; dark: 
     const nodeTotal = (name: string) => Math.max(inflow.get(name) ?? 0, outflow.get(name) ?? 0);
 
     const option = {
+      animation: !window.matchMedia("(prefers-reduced-motion: reduce)").matches,
       animationDuration: 700,
       animationEasing: "cubicOut",
       tooltip: {
@@ -112,7 +128,7 @@ export function SankeyChart({ data, dark, onSelect }: { data: SankeyData; dark: 
       option={option}
       onEvents={onEvents}
       notMerge
-      style={{ height: Math.max(380, data.nodes.length * 34), width: "100%" }}
+      style={{ height: Math.max(380, data.nodes.length * 34, viewportHeight - CHROME_ABOVE_CHART), width: "100%" }}
       opts={{ renderer: "svg" }}
     />
   );
