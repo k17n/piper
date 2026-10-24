@@ -1,0 +1,130 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  color-scheme: light;
+  --bg: #f1f0ed;
+  --surface: #fcfcfb;
+  --surface-2: #f0efec;
+  --border: #e0dfda;
+  --text: #0b0b0b;
+  --text-2: #52514e;
+  --muted: #7a7974;
+  --accent: #2a78d6;
+  --accent-ink: #ffffff;
+}
+
+.dark {
+  color-scheme: dark;
+  --bg: #111110;
+  --surface: #1a1a19;
+  --surface-2: #242422;
+  --border: #30302d;
+  --text: #f0efec;
+  --text-2: #c3c2b7;
+  --muted: #8f8e86;
+  --accent: #3987e5;
+  --accent-ink: #ffffff;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-line: var(--border);
+  --color-ink: var(--text);
+  --color-ink-2: var(--text-2);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .card {
+    background: color-mix(in srgb, var(--surface) 88%, transparent);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    backdrop-filter: blur(12px);
+  }
+
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
+  input,
+  select,
+  textarea {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+  }
+
+  /* The open option list is drawn by the browser engine; the app window (WebView2) ignores
+     color-scheme there, so give options explicit theme colors. */
+  option,
+  optgroup {
+    background-color: var(--surface);
+    color: var(--text);
+  }
+
+  input:focus,
+  select:focus,
+  textarea:focus,
+  button:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+}
+
+@keyframes slide-in {
+  from {
+    transform: translateX(24px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+@keyframes fade-up {
+  from {
+    transform: translateY(6px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+.anim-slide-in {
+  animation: slide-in 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.anim-fade-up {
+  animation: fade-up 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .anim-slide-in,
+  .anim-fade-up {
+    animation: none;
+  }
+}

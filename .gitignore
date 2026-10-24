@@ -1,0 +1,29 @@
+# Secrets & local data
+credentials.json
+token.json
+*.db
+*.db-*
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+
+# Frontend
+web/node_modules/
+web/dist/
+src/jobtracker/static/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Local Claude Code settings
+.claude/

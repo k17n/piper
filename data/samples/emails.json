@@ -1,0 +1,145 @@
+[
+  {
+    "from": "LinkedIn <jobs-noreply@linkedin.com>",
+    "subject": "Your application was sent to Northwind",
+    "body": "Your application was sent to Northwind. Backend Engineer - Northwind - Remote.",
+    "keep": true,
+    "expected": {
+      "is_job_related": true,
+      "company": "Northwind",
+      "role": "Backend Engineer",
+      "stage": "applied",
+      "source": "linkedin"
+    }
+  },
+  {
+    "from": "LinkedIn <jobs-noreply@linkedin.com>",
+    "subject": "Your application was viewed by Contoso",
+    "body": "Good news! Your application was viewed by Contoso for Senior Software Engineer.",
+    "keep": true,
+    "expected": {
+      "is_job_related": true,
+      "company": "Contoso",
+      "role": "Senior Software Engineer",
+      "stage": "viewed",
+      "source": "linkedin"
+    }
+  },
+  {
+    "from": "LinkedIn Job Alerts <jobalerts-noreply@linkedin.com>",
+    "subject": "Software Engineer: Fabrikam and 30+ new jobs",
+    "body": "Jobs you may be interested in. Software Engineer at Fabrikam. Backend Developer at Woodgrove.",
+    "keep": false,
+    "expected": {
+      "is_job_related": false
+    }
+  },
+  {
+    "from": "LinkedIn <jobs-listings@linkedin.com>",
+    "subject": "Jobs you may be interested in",
+    "body": "Based on your profile, here are jobs we think you'll like.",
+    "keep": false,
+    "expected": {
+      "is_job_related": false
+    }
+  },
+  {
+    "from": "LinkedIn <messages-noreply@linkedin.com>",
+    "subject": "Tailspin is hiring: Data Engineer",
+    "body": "Tailspin is hiring. See who you know at Tailspin and apply now.",
+    "keep": false,
+    "expected": {
+      "is_job_related": false
+    }
+  },
+  {
+    "from": "Brightloop Careers <no-reply@greenhouse.io>",
+    "subject": "Thank you for applying to Brightloop",
+    "body": "Hi, thank you for applying for the Platform Engineer role at Brightloop. Our team will review your application.",
+    "keep": true,
+    "expected": {
+      "is_job_related": true,
+      "company": "Brightloop",
+      "role": "Platform Engineer",
+      "stage": "applied",
+      "source": "ats"
+    }
+  },
+  {
+    "from": "Vandelay Recruiting <no-reply@ashbyhq.com>",
+    "subject": "Your application to Vandelay",
+    "body": "Thank you for your interest in the Software Engineer position. Unfortunately, we will not be moving forward with your application at this time.",
+    "keep": true,
+    "expected": {
+      "is_job_related": true,
+      "company": "Vandelay",
+      "role": "Software Engineer",
+      "stage": "rejected",
+      "source": "ats"
+    }
+  },
+  {
+    "from": "Coursera <marketing@coursera.org>",
+    "subject": "Get 40% off and ace your next interview",
+    "body": "Prepare for interviews with our courses. Unsubscribe anytime.",
+    "keep": false,
+    "expected": {
+      "is_job_related": false
+    }
+  },
+  {
+    "from": "Neha Rao <neha@quillstack.com>",
+    "subject": "Interview schedule - SDE II",
+    "body": "Hi, we'd like to invite you for a technical interview for the SDE II role on Tuesday at 3 PM.",
+    "keep": true,
+    "expected": {
+      "is_job_related": true,
+      "company": "Quillstack",
+      "role": "SDE II",
+      "stage": "interview",
+      "source": "direct"
+    }
+  },
+  {
+    "from": "Naukri <info@naukri.com>",
+    "subject": "Your weekly job digest",
+    "body": "10 recommended jobs for you this week.",
+    "keep": false,
+    "expected": {
+      "is_job_related": false
+    }
+  },
+  {
+    "from": "Vikram Shah <vikram@orbitlabs.io>",
+    "subject": "Re: Next Steps w/ Orbit Labs",
+    "body": "Great speaking with you Alex. Sharing a short design exercise - could you send it back by Monday?",
+    "keep": true,
+    "expected": {
+      "is_job_related": true,
+      "company": "Orbit Labs",
+      "stage": "assessment",
+      "source": "direct"
+    }
+  },
+  {
+    "from": "Vikram Shah <vikram@orbitlabs.io>",
+    "subject": "Invitation: Alex <> Priya @ Wed Oct 7, 2026 2pm - 2:45pm",
+    "body": "You have been invited to the following event. Alex <> Priya. Join with Google Meet. Organizer: vikram@orbitlabs.io",
+    "keep": true,
+    "expected": {
+      "is_job_related": true,
+      "company": "Orbit Labs",
+      "stage": "interview",
+      "source": "direct"
+    }
+  },
+  {
+    "from": "Anu <anu.r@gmail.com>",
+    "subject": "Invitation: Anu's birthday brunch @ Sun Oct 11, 2026 11am",
+    "body": "You have been invited to the following event. Anu's birthday brunch. Organizer: anu.r@gmail.com",
+    "keep": true,
+    "expected": {
+      "is_job_related": false
+    }
+  }
+]
