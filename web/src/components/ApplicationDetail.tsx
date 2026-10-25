@@ -253,7 +253,15 @@ function LogUpdate({ app, onLogged }: { app: Application; onLogged: (a: Applicat
   );
 }
 
-export function ApplicationDetail({ app: initial, onClose }: { app: Application; onClose: () => void }) {
+export function ApplicationDetail({
+  app: initial,
+  onClose,
+  onWrite,
+}: {
+  app: Application;
+  onClose: () => void;
+  onWrite?: (app: Application) => void;
+}) {
   const qc = useQueryClient();
   const [app, setApp] = useState(initial);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -285,6 +293,11 @@ export function ApplicationDetail({ app: initial, onClose }: { app: Application;
           </div>
           <div className="flex shrink-0 items-center gap-2">
             <StageBadge stage={app.stage} override={app.manual_override} />
+            {onWrite && (
+              <Button variant="outline" onClick={() => onWrite(app)} title="Open the writing studio for this company">
+                ✎ Write…
+              </Button>
+            )}
             {confirmDelete ? (
               <span className="flex items-center gap-1 text-xs text-ink-2">
                 Delete?

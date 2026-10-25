@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { stageColor, stageLabel } from "../lib/stages";
 
 export function cx(...parts: (string | false | null | undefined)[]) {
@@ -148,4 +148,73 @@ export function fmtDate(iso: string) {
     month: "short",
     year: "numeric",
   });
+}
+
+/** A modal dialog: labelled, focus moves in and is trapped, Esc closes, focus returns to what opened it. */
+export function Dialog({
+  title,
+  onClose,
+  children,
+  width = 440,
+}: {
+  title: string;
+  onClose: () => void;
+  children: ReactNode;
+  width?: number;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
+  const titleId = useId();
+
+  useEffect(() => {
+    const node = ref.current;
+    if (!node) return;
+    const opener = document.activeElement as HTMLElement | null;
+    const focusable = () =>
+      [...node.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])')];
+    (focusable()[0] ?? node).focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        closeRef.current();
+      } else if (e.key === "Tab") {
+        const items = focusable();
+        if (!items.length) return;
+        const first = items[0];
+        const last = items[items.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    };
+    node.addEventListener("keydown", onKey);
+    return () => {
+      node.removeEventListener("keydown", onKey);
+      opener?.focus?.();
+    };
+  }, []);
+
+  return (
+    <div className="fixed inset-0 z-[70] grid place-items-center bg-black/40 p-4" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+      <div
+        ref={ref}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
+        style={{ width }}
+        className="anim-fade-up max-w-full rounded-2xl border border-line bg-surface p-5 shadow-2xl"
+      >
+        <h2 id={titleId} className="mb-4 text-base font-semibold text-ink">
+          {title}
+        </h2>
+        {children}
+      </div>
+    </div>
+  );
 }

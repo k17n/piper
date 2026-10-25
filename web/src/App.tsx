@@ -12,6 +12,8 @@ import { ApplicationsTable } from "./components/ApplicationsTable";
 import { ReviewQueue } from "./components/ReviewQueue";
 import { SyncIndicator } from "./components/SyncIndicator";
 import { Button, Empty, cx } from "./components/ui";
+import { StudioPage } from "./studio/StudioPage";
+import { useStudio } from "./studio/store";
 
 /** The brand: P.I.P.E.R. (Pipeline, Interviews, Pitches, Emails & Résumés), dots in the accent color. */
 function Wordmark() {
@@ -51,11 +53,13 @@ const NAV: { tab: Tab; label: string; icon: string }[] = [
   { tab: "dashboard", label: "Dashboard", icon: "◧" },
   { tab: "applications", label: "Applications", icon: "☰" },
   { tab: "review", label: "Review", icon: "◎" },
+  { tab: "studio", label: "Writing studio", icon: "✎" },
 ];
 
 export default function App() {
-  const { tab, setTab, viewId, setViewId, filters, setFilters, restoredFromUrl } = useUrlState();
+  const { tab, setTab, threadId, setThreadId, viewId, setViewId, filters, setFilters, restoredFromUrl } = useUrlState();
   const { dark, toggle } = useTheme();
+  const studio = useStudio();
   const [selection, setSelection] = useState<Selection | null>(null);
   const [openApp, setOpenApp] = useState<Application | null>(null);
   const [adding, setAdding] = useState(false);
@@ -85,6 +89,14 @@ export default function App() {
   };
   const onSelect = useCallback((s: Selection) => setSelection(s), []);
   const reviewCount = review.data?.length ?? 0;
+
+  /** From an application: open (or start) that company's writing thread. */
+  const writeTo = (a: Application) => {
+    const existing = studio.threadFor(a.company);
+    setThreadId(existing ? existing.id : studio.createThread({ company: a.company, role: a.role || undefined, stage: a.stage }));
+    setOpenApp(null);
+    setTab("studio");
+  };
 
   return (
     <div className="flex h-full">
@@ -131,7 +143,7 @@ export default function App() {
               </button>
             ))}
           </div>
-          {tab !== "review" && (
+          {(tab === "dashboard" || tab === "applications") && (
             <FilterBar
               filters={filters}
               onChange={setFilters}
@@ -145,7 +157,12 @@ export default function App() {
           )}
         </div>
 
-        <div className="flex-1 overflow-y-auto px-4 py-5 md:px-6">
+        {tab === "studio" && (
+          <div className="min-h-0 flex-1">
+            <StudioPage threadId={threadId} setThreadId={setThreadId} />
+          </div>
+        )}
+        <div className={cx("flex-1 overflow-y-auto px-4 py-5 md:px-6", tab === "studio" && "hidden")}>
           {tab === "dashboard" && (
             <div className="anim-fade-up flex flex-col gap-4">
               <KpiCards stats={stats.data} />
@@ -195,7 +212,7 @@ export default function App() {
       {selection && (
         <AppSheet selection={selection} filters={filters} onClose={() => setSelection(null)} onOpen={setOpenApp} />
       )}
-      {openApp && <ApplicationDetail key={openApp.id} app={openApp} onClose={() => setOpenApp(null)} />}
+      {openApp && <ApplicationDetail key={openApp.id} app={openApp} onClose={() => setOpenApp(null)} onWrite={writeTo} />}
       {adding && (
         <AddApplication
           onClose={() => setAdding(false)}

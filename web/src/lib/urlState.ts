@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
 import { DEFAULT_FILTERS, filterParams, normalizeFilters, type Filters, type RangeKey } from "./api";
 
-export type Tab = "dashboard" | "applications" | "review";
-const TABS: Tab[] = ["dashboard", "applications", "review"];
+export type Tab = "dashboard" | "applications" | "review" | "studio";
+const TABS: Tab[] = ["dashboard", "applications", "review", "studio"];
 const FILTER_KEYS = ["range", "from", "to", "sources", "stages", "categories", "q", "include_ghosted"];
 
 interface UrlState {
   tab: Tab;
   viewId: number | null;
+  threadId: string | null;
   filters: Filters;
   hasFilterParams: boolean;
 }
@@ -28,7 +29,7 @@ function readUrl(): UrlState {
     q: p.get("q"),
     include_ghosted: p.get("include_ghosted") !== "false",
   });
-  return { tab, viewId: Number.isFinite(viewId) ? viewId : null, filters, hasFilterParams };
+  return { tab, viewId: Number.isFinite(viewId) ? viewId : null, threadId: p.get("thread"), filters, hasFilterParams };
 }
 
 /** Tab, active saved view and filters, mirrored into the URL so refreshes and bookmarks keep them. */
@@ -37,17 +38,21 @@ export function useUrlState() {
   const [tab, setTab] = useState<Tab>(initial.tab);
   const [viewId, setViewId] = useState<number | null>(initial.viewId);
   const [filters, setFilters] = useState<Filters>(initial.filters);
+  const [threadId, setThreadId] = useState<string | null>(initial.threadId);
 
   useEffect(() => {
     const p = filterParams(filters);
     if (tab !== "dashboard") p.set("tab", tab);
     if (viewId != null) p.set("view", String(viewId));
+    if (tab === "studio" && threadId) p.set("thread", threadId);
     window.history.replaceState(null, "", `${window.location.pathname}?${p}`);
-  }, [tab, viewId, filters]);
+  }, [tab, viewId, filters, threadId]);
 
   return {
     tab,
     setTab,
+    threadId,
+    setThreadId,
     viewId,
     setViewId,
     filters,
