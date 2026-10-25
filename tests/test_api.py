@@ -117,6 +117,35 @@ def test_email_thread_is_fetched_live(client, settings, monkeypatch):
     assert client.get("/api/emails/nope/thread").status_code == 404
 
 
+def test_email_thread_hides_messages_of_other_applications(client, settings, monkeypatch):
+    from datetime import datetime
+
+    from piper_jobs import gmail_client
+    from piper_jobs.db import Application, Email, Event
+    from piper_jobs.schema import RawEmail
+
+    with Session(get_engine(settings.db_path)) as s:
+        ids = []
+        for role in ("Designer", "Engineer"):
+            a = Application(company_norm="taxdome", company_display="TaxDome", role_norm=role.lower(), role_display=role,
+                            first_seen=datetime(2026, 9, 1), last_event_at=datetime(2026, 9, 1), current_stage="applied")
+            s.add(a)
+            s.flush()
+            ids.append(a.id)
+        for n, app_id in (("td1", ids[0]), ("td2", ids[1])):
+            s.add(Email(id=n, thread_id="tt", from_addr="jobs@taxdome.com", subject="Thanks for applying", received_at=datetime(2026, 9, 1)))
+            s.flush()
+            s.add(Event(email_id=n, application_id=app_id, stage="applied", occurred_at=datetime(2026, 9, 1)))
+        s.commit()
+    monkeypatch.setattr(gmail_client, "get_service", lambda *_a, **_k: object())
+    monkeypatch.setattr(gmail_client, "fetch_thread", lambda _s, tid: [
+        RawEmail(n, tid, "TaxDome <jobs@taxdome.com>", "Thanks for applying", datetime(2026, 9, 1), "Thanks") for n in ("td1", "td2")
+    ])
+    data = client.get("/api/emails/td1/thread").json()
+    assert [m["id"] for m in data["messages"]] == ["td1"]
+    assert data["hidden"] == 1
+
+
 def test_role_type_filter_and_manual_override(client):
     apps = client.get("/api/applications", params={"range": "all"}).json()
     assert {a["category"] for a in apps} == {"other"}  # "Engineer" roles

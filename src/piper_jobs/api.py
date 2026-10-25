@@ -242,13 +242,23 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         except gmail_client.GmailNotConfigured as exc:
             raise HTTPException(409, str(exc)) from exc
         account = get_state(session, "gmail_address")
+        # Gmail groups identical subjects ("Thanks for applying to X") into one thread, even when they
+        # are for different roles. Hide messages that belong to another application; keep the rest.
+        owners: dict[str, set[int]] = {}
+        for eid, app_id in session.exec(
+            select(Event.email_id, Event.application_id).where(Event.email_id.in_([m.id for m in messages]))
+        ).all():
+            owners.setdefault(eid, set()).add(app_id)
+        mine = owners.get(email.id, set())
+        shown = [m for m in messages if not mine or not owners.get(m.id) or owners[m.id] & mine]
         return {
-            "subject": messages[0].subject if messages else email.subject,
+            "subject": shown[0].subject if shown else email.subject,
             "gmail_url": message_url(email.id, account),
+            "hidden": len(messages) - len(shown),
             "messages": [
                 {"id": m.id, "from": m.from_addr, "to": m.to_addr, "date": m.received_at.isoformat(),
                  "outgoing": m.outgoing, "body": m.body, "highlight": m.id == email.id}
-                for m in messages
+                for m in shown
             ],
         }
 

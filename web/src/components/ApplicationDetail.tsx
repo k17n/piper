@@ -63,6 +63,7 @@ function Thread({ emailId, order, setOrder }: { emailId: string; order: Order; s
       <div className="flex items-center justify-between gap-2 px-1">
         <span className="text-xs text-muted">
           {data.messages.length} message{data.messages.length === 1 ? "" : "s"}
+          {data.hidden > 0 && ` · ${data.hidden} for another application hidden`}
         </span>
         <div className="flex h-7 items-center rounded-lg border border-line p-0.5 text-xs" role="group" aria-label="Message order">
           {(["newest", "oldest"] as const).map((o) => (

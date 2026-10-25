@@ -152,6 +152,8 @@ export interface ThreadMessage {
 export interface EmailThread {
   subject: string;
   gmail_url: string;
+  /** Messages in the Gmail thread that belong to another application and are not shown. */
+  hidden: number;
   messages: ThreadMessage[];
 }
 
