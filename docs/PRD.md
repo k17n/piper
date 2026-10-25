@@ -321,6 +321,7 @@ Frontend: Vite + React + TypeScript + Tailwind, ECharts (Sankey), TanStack Query
 | Item | Notes |
 |---|---|
 | 🔜 **Writing Studio** | Grounded cover letters, LinkedIn, WhatsApp and email drafts from a local knowledge base, stored as threads with memory across sessions — see [PRD-writing-studio.md](PRD-writing-studio.md) |
+| 🔜 **Role types from onboarding** | Replace the fixed design / product / VC types so Piper suits any profession. First-run onboarding asks what roles the user is looking for; the local model proposes 2–6 types (names and keywords) that the user edits and confirms before the first sync. New roles are classified by similarity to confirmed examples, with the model as tie-breaker, and hand corrections become examples. Types stay current through Review-queue suggestions (a new type when about 4 similar roles fall outside every type, a prompt for types unused for 90 days, a monthly merge / split / rename check) and a Settings editor; nothing changes without the user's approval. Needs a `categories` table (existing four types migrate as ordinary rows), types loaded from the API in the UI, and the VC company-name rule becoming an optional hint |
 | 🔜 In-app **Connect Gmail** / "Sign in with Google" button | Removes the command-line step; optional bundled OAuth client for small groups (Google limits unverified apps to 100 test users with weekly re-sign-in) |
 | 🔜 Kanban board | Stage columns; dragging a card sets a manual override |
 | 🔜 Insights view | Activity heatmap and response rate by source (`/api/insights` exists) |
