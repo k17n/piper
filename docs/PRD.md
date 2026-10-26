@@ -318,6 +318,8 @@ Frontend: Vite + React + TypeScript + Tailwind, ECharts (Sankey), TanStack Query
 
 ## 12. Roadmap
 
+🔜 planned · 💤 backlog: built only if users ask.
+
 | Item | Notes |
 |---|---|
 | 🔜 **Writing Studio** | Grounded cover letters, LinkedIn, WhatsApp and email drafts from a local knowledge base, stored as threads with memory across sessions — see [PRD-writing-studio.md](PRD-writing-studio.md) |
@@ -334,6 +336,8 @@ Frontend: Vite + React + TypeScript + Tailwind, ECharts (Sankey), TanStack Query
 | 🔜 Applying with you | Prepare applications for roles the user chooses; the user always reviews before anything is sent |
 | 🔜 Export | CSV / Markdown |
 | 🔜 One-click installer | Package with PyInstaller |
+| 💤 **Merge / un-merge applications** | Only if users hit duplicates the matcher misses. *Merge*: "Merge into…" on an application moves its events to another, keeps both notes, recomputes stage and category (`merge_orphan_updates` in `resolver.py` already does this automatically for one pattern, so the core is reusable). *Un-merge*: split chosen events off into a new application (`split_merged_confirmations` is the automatic precedent). Needs one endpoint per action plus a button in the application detail |
+| 💤 Confirm borderline role matches | When a status update matches the company and only partly matches a role, queue "Is this the same as *Senior Product Designer*?" in the review queue instead of guessing. Today `find_match` falls back to the single open, related application (subset/superset title, same seniority) without asking |
 
 ## 13. Open questions
 

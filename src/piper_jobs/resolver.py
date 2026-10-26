@@ -135,7 +135,21 @@ def find_match(
         score = 100.0 if not app.role_norm else role_similarity(role_norm, app.role_norm)
         if score >= ROLE_MATCH and (best is None or score > best[0]):
             best = (score, app)
-    return best[1] if best else None
+    if best:
+        return best[1]
+    if stage and stage != "applied":
+        # A status update (rejection, interview...) is about an application we already know. Companies
+        # often append a team or program to the title ("Senior Product Designer, New Verticals"), so
+        # accept the single open application whose role is a subset/superset of this one.
+        related = [
+            a for a in candidates
+            if a.current_stage not in CLOSED_STAGES and a.role_norm
+            and fuzz.token_set_ratio(role_norm, a.role_norm) == 100
+            and set(role_norm.split()) & _SENIORITY == set(a.role_norm.split()) & _SENIORITY
+        ]
+        if len(related) == 1:
+            return related[0]
+    return None
 
 
 def apply_event(
@@ -218,6 +232,76 @@ def recompute_all_categories(session: Session) -> None:
     for app in session.exec(select(Application).where(Application.category_manual == False)).all():  # noqa: E712
         recompute_category(session, app)
     session.commit()
+
+
+_VIEWED = re.compile(r"\b(viewed|seen|looked at|opened)\b", re.I)
+
+
+def mentions_viewed(text: str) -> bool:
+    """Does the email say the employer looked at the application? Only then is it a `viewed` stage."""
+    return bool(_VIEWED.search(text))
+
+
+def fix_unfounded_viewed(session: Session) -> int:
+    """One-time repair: the model sometimes labelled "we received your application" as `viewed`,
+    which put a Viewed step in the sankey. Relabel such events (judged by the stored snippet) as applied."""
+    fixed, touched = 0, {}
+    rows = session.exec(
+        select(Event, Email).join(Email, Email.id == Event.email_id).where(Event.stage == "viewed")
+    ).all()
+    for event, email in rows:
+        if mentions_viewed(f"{email.subject}\n{email.snippet}"):
+            continue
+        event.stage = "applied"
+        session.add(event)
+        touched[event.application_id] = True
+        fixed += 1
+    session.flush()
+    for app_id in touched:
+        app = session.get(Application, app_id)
+        if app and not app.manual_override:
+            recompute_stage(session, app)
+            session.add(app)
+    session.commit()
+    return fixed
+
+
+def merge_orphan_updates(session: Session) -> int:
+    """One-time repair: before status updates could match a longer role title, a rejection or
+    interview naming "Senior Designer, New Verticals" became its own application next to the
+    "Senior Designer" one it belongs to. Fold such update-only applications into that application."""
+    merged = 0
+    for orphan in session.exec(select(Application).where(Application.role_norm != "")).all():
+        if orphan.manual_override or orphan.notes or orphan.job_url:
+            continue
+        events = session.exec(select(Event).where(Event.application_id == orphan.id)).all()
+        if not events or any(e.stage == "applied" for e in events):
+            continue
+        first = min(e.occurred_at for e in events)
+        targets = [
+            a for a in company_applications(session, orphan.company_display)
+            if a.id != orphan.id and a.role_norm and a.current_stage not in CLOSED_STAGES
+            and a.first_seen <= first
+            and fuzz.token_set_ratio(orphan.role_norm, a.role_norm) == 100
+            and set(orphan.role_norm.split()) & _SENIORITY == set(a.role_norm.split()) & _SENIORITY
+        ]
+        if len(targets) != 1:
+            continue
+        target = targets[0]
+        for e in events:
+            e.application_id = target.id
+            session.add(e)
+        session.flush()
+        target.last_event_at = max(target.last_event_at, orphan.last_event_at)
+        session.add(target)
+        session.delete(orphan)
+        session.flush()
+        if not target.manual_override:
+            recompute_stage(session, target)
+        recompute_category(session, target)
+        merged += 1
+    session.commit()
+    return merged
 
 
 def split_merged_confirmations(session: Session) -> int:

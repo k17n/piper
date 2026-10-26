@@ -24,7 +24,7 @@ from .job_page import JobPageError, normalize_url, read_job_page
 from .filters import AppRow, Filters, RangeKey, load_rows
 from .pipeline import SyncRunner
 from .resolver import (apply_event, normalize_role, recompute_all_categories, recompute_category,
-                       recompute_stage, split_merged_confirmations)
+                       fix_unfounded_viewed, merge_orphan_updates, recompute_stage, split_merged_confirmations)
 from .sankey import build_sankey
 from .schema import Source, Stage
 from .stats import compute_insights, compute_stats
@@ -168,6 +168,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         if not get_state(session, "split_confirmations_v1"):  # one-time repair, see resolver
             split_merged_confirmations(session)
             set_state(session, "split_confirmations_v1", utcnow().isoformat())
+            session.commit()
+        if not get_state(session, "merge_orphan_updates_v1"):  # one-time repair, see resolver
+            merge_orphan_updates(session)
+            set_state(session, "merge_orphan_updates_v1", utcnow().isoformat())
+            session.commit()
+        if not get_state(session, "fix_unfounded_viewed_v1"):  # one-time repair, see resolver
+            fix_unfounded_viewed(session)
+            set_state(session, "fix_unfounded_viewed_v1", utcnow().isoformat())
             session.commit()
 
     app = FastAPI(title="P.I.P.E.R.", version="0.1.0")

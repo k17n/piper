@@ -14,7 +14,7 @@ from .db import Application, Email, Event, ReviewItem, get_engine, get_state, se
 from .llm import ExtractionError, Extractor, get_extractor
 from .llm.prompt import PROMPT_VERSION
 from .prefilter import RULES_VERSION, should_process
-from .resolver import ambiguous_applications, apply_event
+from .resolver import ambiguous_applications, apply_event, mentions_viewed
 from .schema import RawEmail, Stage
 
 Progress = Callable[[dict[str, Any]], None]
@@ -100,6 +100,8 @@ def process_email(
             event = None
         if event is not None and outreach and event.is_job_related:
             event.stage, event.source = Stage.applied, event.source or "direct"
+        if event is not None and event.is_job_related and event.stage == Stage.viewed and not mentions_viewed(f"{raw.subject}\n{raw.body}"):
+            event.stage = Stage.applied  # "we received your application" is a confirmation, not a view
         if event is not None:
             extracted = event.model_dump(mode="json")
             if not event.is_job_related:

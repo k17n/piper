@@ -231,3 +231,39 @@ def test_roleless_update_with_several_open_applications_asks_which(settings, mon
 
         r = client.patch(f"/api/applications/{chosen}", json={"role": "Product Designer"})
         assert r.json()["role"] == "Product Designer" and r.json()["category"] == "design"
+
+
+def test_confirmation_mislabelled_viewed_becomes_applied(settings, monkeypatch):
+    emails = [
+        mail("c", "Playlist <no-reply@mindbodyonline.com>", "Thank you for applying to Playlist", 1,
+             "We have received your application for Senior Product Designer."),
+        mail("v", "LinkedIn <jobs-noreply@linkedin.com>", "Your application was viewed by Initrode", 2,
+             "Your application was viewed by Initrode."),
+    ]
+    FakeGmail(emails, by_query={"newer_than": ["c", "v"]}).install(monkeypatch)
+    settings.follow_company_domains = False
+    model = FakeModel({"c": ev("Playlist", "viewed", role="Senior Product Designer"),
+                       "v": ev("Initrode", "viewed", role="Software Engineer")})
+    sync(settings, service=object(), extractor=model)
+    with Session(get_engine(settings.db_path)) as s:
+        stages = {a.company_display: a.current_stage for a in s.exec(select(Application)).all()}
+    assert stages == {"Playlist": "applied", "Initrode": "viewed"}
+
+
+def test_fix_unfounded_viewed_repairs_old_data(session):
+    from piper_jobs.resolver import apply_event, fix_unfounded_viewed
+
+    t = datetime(2026, 9, 1)
+    for id, subject, body in [("a", "Thank you for applying", "We have received your application"),
+                              ("b", "Update", "Your application was viewed by Initrode")]:
+        session.add(Email(id=id, thread_id=None, from_addr="x@y.com", to_addr="", subject=subject,
+                          received_at=t, snippet=body))
+    session.commit()
+    a = apply_event(session, company="Playlist", role="Designer", stage="viewed", source="ats",
+                    occurred_at=t, email_id="a")
+    b = apply_event(session, company="Initrode", role="Engineer", stage="viewed", source="ats",
+                    occurred_at=t, email_id="b")
+    session.commit()
+    assert fix_unfounded_viewed(session) == 1
+    assert (session.get(Application, a.id).current_stage, session.get(Application, b.id).current_stage) == ("applied", "viewed")
+    assert fix_unfounded_viewed(session) == 0
