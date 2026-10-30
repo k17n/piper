@@ -4,6 +4,8 @@ import { api, type Filters, type Granularity } from "../../lib/api";
 import type { Selection } from "../SankeyChart";
 import { Empty } from "../ui";
 import { defaultGranularity } from "./format";
+import { AppsOverTime } from "./AppsOverTime";
+import { Section, Segmented } from "./Section";
 import { SummaryTiles } from "./SummaryTiles";
 
 export function AnalyticsTab({ filters, dark, onSelect }: { filters: Filters; dark: boolean; onSelect: (s: Selection) => void }) {
@@ -25,10 +27,28 @@ export function AnalyticsTab({ filters, dark, onSelect }: { filters: Filters; da
     );
   }
 
-  void [dark, onSelect, setChosen]; // used by the widgets added in the following tasks
   return (
     <div className="anim-fade-up flex flex-col gap-4">
       <SummaryTiles s={data?.summary} />
+      {data && (
+        <Section
+          title="Applications over time"
+          hint={data.summary.total < 7 ? "The 7-day average appears once there are 7 applications" : undefined}
+          right={
+            <Segmented
+              value={granularity}
+              onChange={setChosen}
+              options={[
+                { value: "day", label: "Day" },
+                { value: "week", label: "Week" },
+                { value: "month", label: "Month" },
+              ]}
+            />
+          }
+        >
+          <AppsOverTime data={data.series} granularity={granularity} showAverage={data.summary.total >= 7} dark={dark} onSelect={onSelect} />
+        </Section>
+      )}
       {/* widgets: keep this line, new sections go above it */}
     </div>
   );
