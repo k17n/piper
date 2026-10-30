@@ -1,8 +1,9 @@
 from datetime import timedelta
 
 import pytest
-from sqlmodel import select
+from sqlmodel import Session, select
 
+from piper_jobs import summaries
 from piper_jobs.db import InsightSummary, get_engine, utcnow
 from piper_jobs.insights import MIN_APPLICATIONS, PROMPT_VERSION, build_facts, facts_hash
 from piper_jobs.summaries import (
@@ -306,7 +307,7 @@ def test_ollama_client_gets_a_timeout(monkeypatch, settings):
     assert captured["timeout"] == GENERATE_TIMEOUT_SECONDS == 120
 
 
-def test_refresh_during_a_run_still_regenerates_with_new_wording(settings, sample_analytics):
+def test_refresh_during_a_run_still_regenerates_with_new_wording(settings, sample_analytics, monkeypatch):
     model = Recorder()
     svc, clock, spawned = _recording_service(settings, model)
     a = sample_analytics()
@@ -316,14 +317,97 @@ def test_refresh_during_a_run_still_regenerates_with_new_wording(settings, sampl
     assert len(spawned) == 1
     svc.refresh(a)
     assert len(spawned) == 1  # still only one at a time
+    saved = []
+    real_save = summaries.save
+    monkeypatch.setattr(summaries, "save", lambda *args, **kw: saved.append(args) or real_save(*args, **kw))
     spawned[0]()
     assert model.temperatures == [0.0]
-    svc.status(a)  # the refresh asked for a new generation
+    assert saved == []  # the finished reply was never written, so no poll can see it
+    # the finished reply is dropped, never shown, and the next poll starts the new run at once
+    with Session(get_engine(settings.db_path)) as s:
+        assert get_cached(s, facts_hash(build_facts(a), settings.ollama_model)) is None
+    assert svc.status(a)["status"] == "pending"
     assert len(spawned) == 2
     model.reply = "You sent 24 jobs."
     spawned[1]()
     assert model.temperatures == [0.0, 0.6]
     assert svc.status(a) == {"status": "ready", "text": "You sent 24 jobs.", "facts": build_facts(a)}
+
+
+def _cached(settings, a, text="Old text."):
+    with Session(get_engine(settings.db_path)) as s:
+        save(s, facts_hash(build_facts(a), settings.ollama_model), text, settings.ollama_model, PROMPT_VERSION)
+
+
+def test_a_failed_refresh_keeps_the_old_summary(make_service, sample_analytics, settings):
+    a = sample_analytics()
+    _cached(settings, a)
+    svc, _ = make_service(Recorder(replies=["You sent 99.", "You sent 98."]))
+    svc.refresh(a)
+    assert svc.status(a) == {"status": "ready", "text": "Old text.", "facts": build_facts(a)}
+
+
+def test_a_refresh_when_the_model_is_down_keeps_the_old_summary(make_service, sample_analytics, settings):
+    a = sample_analytics()
+    _cached(settings, a)
+    svc, _ = make_service(Recorder(error=ConnectionError("down")))
+    svc.refresh(a)
+    assert svc.status(a) == {"status": "ready", "text": "Old text.", "facts": build_facts(a)}
+
+
+def test_a_good_refresh_replaces_the_old_summary(make_service, sample_analytics, settings):
+    a = sample_analytics()
+    _cached(settings, a)
+    svc, _ = make_service(Recorder(reply="You sent 24 jobs."))
+    svc.refresh(a)
+    assert svc.status(a)["text"] == "You sent 24 jobs."
+    assert svc._previous == {}
+
+
+def test_a_model_error_pauses_every_set_of_facts_until_the_window_ends(make_service, sample_analytics):
+    model = Recorder(error=ConnectionError("down"))
+    svc, clock = make_service(model)
+    a, b = sample_analytics(), sample_analytics()
+    b["summary"]["this_week"] = 9
+    assert _generate_once(svc, clock, a)["status"] == "fallback"
+    assert model.calls == 1
+    clock.now += RETRY_AFTER_SECONDS - 1
+    assert svc.status(b)["status"] == "fallback"
+    assert svc.status(b)["status"] == "fallback" and model.calls == 1
+    clock.now += 2
+    assert svc.status(b)["status"] == "pending" and model.calls == 1  # a new quiet period first
+    clock.now += DEBOUNCE_SECONDS
+    svc.status(b)
+    assert model.calls == 2
+
+
+def test_the_pause_still_shows_cached_summaries(make_service, sample_analytics, settings):
+    a, b = sample_analytics(), sample_analytics()
+    b["summary"]["this_week"] = 9
+    _cached(settings, b, "Cached B.")
+    svc, clock = make_service(Recorder(error=ConnectionError("down")))
+    _generate_once(svc, clock, a)
+    assert svc.status(b)["status"] == "ready"
+
+
+def test_an_ungrounded_reply_does_not_pause_other_facts(make_service, sample_analytics):
+    model = Recorder(replies=["You sent 99.", "You sent 98."])
+    svc, clock = make_service(model)
+    a, b = sample_analytics(), sample_analytics()
+    b["summary"]["this_week"] = 9
+    assert _generate_once(svc, clock, a)["status"] == "fallback"
+    assert svc.status(b)["status"] == "pending"
+
+
+def test_refresh_ends_the_pause(make_service, sample_analytics):
+    model = Recorder(error=ConnectionError("down"))
+    svc, clock = make_service(model)
+    a = sample_analytics()
+    _generate_once(svc, clock, a)
+    model.error = None
+    svc.refresh(a)
+    assert model.calls == 2
+    assert svc.status(a)["status"] == "ready"
 
 
 def test_generation_starts_exactly_at_the_quiet_period(settings, sample_analytics):

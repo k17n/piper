@@ -119,6 +119,8 @@ class SummaryService:
         self._variant: set[str] = set()
         self._running: str | None = None
         self._regenerate: set[str] = set()
+        self._previous: dict[str, str] = {}  # the text a refresh replaced, kept until the new one exists
+        self._down_until = 0.0  # the model failed: ask it nothing before this time
 
     @property
     def model(self) -> str:
@@ -136,6 +138,8 @@ class SummaryService:
         now = self.clock()
         syncing = self.is_syncing()
         with self._lock:
+            if now < self._down_until:
+                return {"status": "fallback", "text": None, "facts": facts}
             failed_at = self._failed.get(key)
             if failed_at is not None and now - failed_at < RETRY_AFTER_SECONDS:
                 return {"status": "fallback", "text": None, "facts": facts}
@@ -172,9 +176,16 @@ class SummaryService:
         if analytics["summary"]["total"] >= MIN_APPLICATIONS:
             key = facts_hash(facts, self.model)
             with Session(self.engine) as session:
+                old = get_cached(session, key)
+                with self._lock:
+                    if old:
+                        if len(self._previous) > _MAX_TRACKED:
+                            self._previous.clear()
+                        self._previous[key] = old  # put back if the new one cannot be written
                 delete_cached(session, key)
             with self._lock:
                 self._failed.pop(key, None)
+                self._down_until = 0.0
                 self._variant.add(key)
                 self._first_seen[key] = self.clock() - self.debounce
                 if self._running == key:
@@ -182,7 +193,7 @@ class SummaryService:
         return self.status(analytics)
 
     def _generate(self, key: str, facts: list[str], temperature: float) -> None:
-        regenerate = False
+        failed = False
         try:
             messages = build_messages(facts)
             text = self.generate(messages, temperature).strip()
@@ -195,13 +206,21 @@ class SummaryService:
                     "Write it again using only numbers copied exactly from the facts.")}]
                 text = self.generate(messages, temperature).strip()
                 if not is_grounded(text, facts):
+                    failed = True
                     raise ValueError("the summary used numbers that are not in the facts")
-            with Session(self.engine) as session:
-                save(session, key, text, self.model, PROMPT_VERSION)
+            with self._lock:
+                if key not in self._regenerate:  # otherwise the user already asked for another wording: drop this one
+                    with Session(self.engine) as session:
+                        save(session, key, text, self.model, PROMPT_VERSION)
+                    self._previous.pop(key, None)
         except Exception as exc:  # the model being down must never break the page: show the facts instead
             log.warning("Could not write the summary: %s", exc, exc_info=True)
             with self._lock:
-                self._remember_failure(key, self.clock())
+                now = self.clock()
+                self._remember_failure(key, now)
+                if not failed:  # the model itself failed: leave it alone for a while
+                    self._down_until = now + RETRY_AFTER_SECONDS
+            self._restore_previous(key)
         finally:
             with self._lock:
                 self._running = None
@@ -213,9 +232,16 @@ class SummaryService:
                 else:
                     self._first_seen.pop(key, None)
                     self._variant.discard(key)
-        if regenerate:
+
+    def _restore_previous(self, key: str) -> None:
+        """A refresh that could not write a new summary gives the old one back."""
+        with self._lock:
+            if key in self._regenerate:
+                return  # another run is coming for these facts
+            old = self._previous.pop(key, None)
+        if old:
             try:
                 with Session(self.engine) as session:
-                    delete_cached(session, key)
+                    save(session, key, old, self.model, PROMPT_VERSION)
             except Exception:
-                log.warning("Could not clear the summary for rewriting", exc_info=True)
+                log.warning("Could not put back the earlier summary", exc_info=True)
