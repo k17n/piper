@@ -2,9 +2,19 @@
 
 from __future__ import annotations
 
+import logging
+import threading
+import time
+from collections.abc import Callable
+
+from sqlalchemy.engine import Engine
 from sqlmodel import Session, select
 
+from .config import Settings
 from .db import InsightSummary, utcnow
+from .insights import MIN_APPLICATIONS, PROMPT_VERSION, build_facts, build_messages, facts_hash, is_grounded
+
+log = logging.getLogger(__name__)
 
 MAX_ENTRIES = 50
 
@@ -55,3 +65,113 @@ def prune_stale(session: Session, model: str, prompt_version: int) -> None:
     for row in rows:
         session.delete(row)
     session.commit()
+
+
+DEBOUNCE_SECONDS = 10  # the same facts must be requested this long before the model is asked
+RETRY_AFTER_SECONDS = 300  # after a failed or ungrounded reply
+VARIANT_TEMPERATURE = 0.6  # "write it again" must not return the same words
+_MAX_TRACKED = 100
+
+
+def ollama_generate(settings: Settings) -> Callable[[list[dict], float], str]:
+    def generate(messages: list[dict], temperature: float) -> str:
+        import ollama
+
+        reply = ollama.Client(host=settings.ollama_host).chat(
+            model=settings.ollama_model, messages=messages, options={"temperature": temperature}
+        )
+        return reply.message.content or ""
+
+    return generate
+
+
+def _spawn_thread(fn: Callable[[], None]) -> None:
+    threading.Thread(target=fn, daemon=True).start()
+
+
+class SummaryService:
+    """Serves cached summaries and generates missing ones in the background, one at a time.
+
+    `status` is meant to be polled: the first request for a set of facts starts the quiet period, and the
+    request that arrives after it (outside a sync) starts the model."""
+
+    def __init__(
+        self,
+        settings: Settings,
+        engine: Engine,
+        is_syncing: Callable[[], bool],
+        generate: Callable[[list[dict], float], str] | None = None,
+        spawn: Callable[[Callable[[], None]], None] | None = None,
+        clock: Callable[[], float] = time.monotonic,
+    ) -> None:
+        self.settings = settings
+        self.engine = engine
+        self.is_syncing = is_syncing
+        self.generate = generate or ollama_generate(settings)
+        self.spawn = spawn or _spawn_thread
+        self.clock = clock
+        self.debounce = DEBOUNCE_SECONDS
+        self._lock = threading.Lock()
+        self._first_seen: dict[str, float] = {}
+        self._failed: dict[str, float] = {}
+        self._variant: set[str] = set()
+        self._running: str | None = None
+
+    @property
+    def model(self) -> str:
+        return self.settings.ollama_model
+
+    def status(self, analytics: dict) -> dict:
+        facts = build_facts(analytics)
+        if analytics["summary"]["total"] < MIN_APPLICATIONS:
+            return {"status": "insufficient_data", "text": None, "facts": facts}
+        key = facts_hash(facts, self.model)
+        with Session(self.engine) as session:
+            text = get_cached(session, key)
+        if text:
+            return {"status": "ready", "text": text, "facts": facts}
+        now = self.clock()
+        with self._lock:
+            failed_at = self._failed.get(key)
+            if failed_at is not None and now - failed_at < RETRY_AFTER_SECONDS:
+                return {"status": "fallback", "text": None, "facts": facts}
+            if len(self._first_seen) > _MAX_TRACKED:
+                self._first_seen.clear()
+            first = self._first_seen.setdefault(key, now)
+            start = self._running is None and not self.is_syncing() and now - first >= self.debounce
+            if start:
+                self._running = key
+        if start:
+            self.spawn(lambda: self._generate(key, facts))
+        return {"status": "pending", "text": None, "facts": facts}
+
+    def refresh(self, analytics: dict) -> dict:
+        """Forget the cached text for these facts and ask again now, with different wording."""
+        facts = build_facts(analytics)
+        if analytics["summary"]["total"] >= MIN_APPLICATIONS:
+            key = facts_hash(facts, self.model)
+            with Session(self.engine) as session:
+                delete_cached(session, key)
+            with self._lock:
+                self._failed.pop(key, None)
+                self._variant.add(key)
+                self._first_seen[key] = self.clock() - self.debounce
+        return self.status(analytics)
+
+    def _generate(self, key: str, facts: list[str]) -> None:
+        try:
+            temperature = VARIANT_TEMPERATURE if key in self._variant else 0.0
+            text = self.generate(build_messages(facts), temperature).strip()
+            if not is_grounded(text, facts):
+                raise ValueError("the summary used numbers that are not in the facts")
+            with Session(self.engine) as session:
+                save(session, key, text, self.model, PROMPT_VERSION)
+        except Exception as exc:  # the model being down must never break the page: show the facts instead
+            log.warning("Could not write the summary: %s", exc)
+            with self._lock:
+                self._failed[key] = self.clock()
+        finally:
+            with self._lock:
+                self._running = None
+                self._first_seen.pop(key, None)
+                self._variant.discard(key)
