@@ -144,6 +144,41 @@ Each bar or list row is clickable and opens the side panel with those applicatio
 - Layout: a two-column grid from `lg`, one column below `lg` (the sidebar leaves too little width for two columns at `md`). Nothing causes horizontal page
   scroll.
 
+### 6.9 Written summary (planned, not built)
+
+An **Insights** card at the top of the tab with two to four plain sentences about the current filters,
+written by the local model, for example: "41 applications in 30 days, 58% Product. LinkedIn is most of
+your volume but has the lowest reply rate. The last two weeks may still be waiting for replies."
+
+- **The model writes; the app calculates.** The backend picks the notable facts from numbers it already
+  has: largest mix shares, best and worst reply rate among groups of 5 or more, pace versus the previous
+  period, streak, and whether recent weeks are still maturing. The model receives only these as short
+  labelled lines and is told to use no number that is not in them.
+- **Guard:** every number in the reply must appear in the facts; if one does not, the card shows the
+  facts as plain bullets instead. The model describes patterns only and gives no advice.
+- **Low data:** under 10 applications the card says there is not enough data yet and calls no model.
+- **Automatic and cached.** The card fills itself; it is not behind a button.
+  1. The facts for the current filters are hashed together with the model name and a prompt version.
+  2. A stored summary for that hash is shown immediately.
+  3. Otherwise the plain facts show at once and the summary generates in the background, then replaces
+     them. Generation never runs while a sync is running, and runs once the sync ends.
+     Generation starts only after the facts have been unchanged for 10 seconds, so a burst of edits
+     (several applications added in a row) produces one summary, not one per edit. If the facts change
+     while a summary is being written, the result is discarded rather than shown against the wrong
+     numbers.
+  5. Changes that leave the facts the same (notes, job links) hit the existing entry and call no model.
+  6. A small refresh control regenerates with different wording and replaces the cached text.
+- **When the cache is cleared:** there is no timer. An entry stops being used when its facts change
+  (new or edited applications, a new sync, different filters, or the day rolling over if a fact depends
+  on today, such as the streak). Entries for another model or prompt version are deleted on startup.
+  Only the 50 most recently used entries are kept; older ones are deleted as new ones are saved.
+  `piper reset` removes them with the database.
+- **Stored data:** a new table `insight_summaries(hash, text, model, prompt_version, created_at,
+  last_used_at)`. This is the one schema addition in this feature, and it stores only generated text
+  derived from counts, never email content.
+- **API:** `GET /api/analytics/summary?<shared filters>&tz_offset=` returns `{status: "ready" | "pending"
+  | "insufficient_data" | "fallback", text, facts}`; the page polls while `pending`.
+
 ## 7. Technical design
 
 ### 7.1 Backend
@@ -215,7 +250,7 @@ withdrawn, accepted. `daily` is always per day (it feeds the heatmap) whatever `
 ### 7.3 Performance
 
 Aggregation is in memory over the same rows the Dashboard loads; a few thousand applications compute in
-well under 100 ms. No caching beyond TanStack Query's.
+well under 100 ms. No caching beyond TanStack Query's, except the written summary's own cache (§6.9).
 
 ## 8. Testing and acceptance
 
