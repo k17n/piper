@@ -117,8 +117,8 @@ Each bar or list row is clickable and opens the side panel with those applicatio
   sample" tooltip. Rates are never shown as bare percentages without the count beside them.
 - **Weekly cohorts:** a line chart of response rate for applications grouped by the week they were
   applied, so a recent dip caused by replies that have not arrived yet is not mistaken for a trend.
-  The most recent 2 weeks are drawn dashed and labelled "still maturing".
-- **Time to first response:** histogram (≤ 2 d, 3–7 d, 8–14 d, 15–30 d, > 30 d) with the median marked.
+  The most recent 2 weeks are drawn dashed; the "still maturing" cue is in the tooltip and card hint.
+- **Time to first response:** histogram (≤ 2 d, 3–7 d, 8–14 d, 15–30 d, > 30 d) with the median shown in the card hint rather than marked on the histogram.
 
 ### 6.6 Pipeline health
 
@@ -141,20 +141,20 @@ Each bar or list row is clickable and opens the side panel with those applicatio
 - The tab is mirrored in the URL (`?tab=analytics`) with filters and open saved view.
 - Charts use a colour for role types and sources that is **the same everywhere** (Dashboard, table
   badges, Analytics), taken from the existing palette in `web/src/lib`.
-- Layout: a two-column grid on wide screens, one column below `md`. Nothing causes horizontal page
+- Layout: a two-column grid from `lg`, one column below `lg` (the sidebar leaves too little width for two columns at `md`). Nothing causes horizontal page
   scroll.
 
 ## 7. Technical design
 
 ### 7.1 Backend
 
-- New pure function `compute_analytics(rows: list[AppRow], now: datetime, tz: tzinfo) -> dict` in a new
+- New pure function `compute_analytics(rows: list[AppRow], now: datetime, tz_offset: int, ...) -> dict` in a new
   `src/piper_jobs/analytics.py`. It takes the rows `load_rows` already returns — **no new queries and no
   schema change**.
 - New endpoint `GET /api/analytics?<shared filters>&granularity=day|week|month&tz_offset=<minutes>`
   with the same `Filters` dependency as `/api/stats`. The browser sends its UTC offset so day buckets
   match the user's day; the server never guesses a time zone.
-- `GET /api/insights` stays for compatibility and is reimplemented on top of the same helpers.
+- `GET /api/insights` is left unchanged for compatibility (not reimplemented on the new helpers).
 - `categories.py` gains `seniority(role) -> str` and `normalize_title(role) -> str`.
 
 Response shape:

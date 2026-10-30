@@ -76,6 +76,7 @@ export function AnalyticsTab({ filters, dark, onSelect }: { filters: Filters; da
                 title="Role"
                 onSelect={onSelect}
                 items={data.top_titles.map((t) => ({ key: t.title, label: t.title.replace(/\b\w/g, (m) => m.toUpperCase()), count: t.count, ids: t.ids }))}
+                total={data.summary.total}
                 empty="No role titles yet"
               />
             </Section>
@@ -84,6 +85,7 @@ export function AnalyticsTab({ filters, dark, onSelect }: { filters: Filters; da
                 title="Company"
                 onSelect={onSelect}
                 items={data.top_companies.map((c) => ({ key: c.company, label: `${c.company} · ${stageLabel(c.stage)}`, count: c.count, ids: c.ids }))}
+                total={data.summary.total}
                 empty="No company has more than one application"
               />
             </Section>
@@ -115,11 +117,13 @@ export function AnalyticsTab({ filters, dark, onSelect }: { filters: Filters; da
             <ConversionTable conversion={data.conversion} />
           </Section>
           <div className="grid gap-4 lg:grid-cols-2">
-            {data.summary.total >= 7 && (
-              <Section title="Response rate by week applied" hint="Dashed weeks may still be waiting for replies">
+            <Section title="Response rate by week applied" hint="Dashed weeks may still be waiting for replies">
+              {data.summary.total >= 7 ? (
                 <Cohorts data={data.cohorts} dark={dark} />
-              </Section>
-            )}
+              ) : (
+                <div className="py-6 text-center text-sm text-muted">Needs a week of data</div>
+              )}
+            </Section>
             <Section
               title="Time to first reply"
               hint={data.response_time.median == null ? "No replies yet" : `Median ${data.response_time.median.toFixed(1)} days`}

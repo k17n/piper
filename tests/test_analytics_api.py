@@ -48,6 +48,17 @@ def test_previous_total_compares_the_shifted_window(client):
     assert client.get("/api/analytics", params={"range": "all"}).json()["summary"]["previous_total"] is None
 
 
+@pytest.mark.parametrize("tz_offset", [-300, 0, 330])
+def test_window_is_independent_of_tz_offset(client, tz_offset):
+    params = {"range": "30d"}
+    data = client.get("/api/analytics", params={**params, "tz_offset": tz_offset}).json()
+    total = client.get("/api/stats", params=params).json()["total"]
+    assert data["summary"]["total"] == total
+    assert sum(p["count"] for p in data["series"]) == total
+    base = client.get("/api/analytics", params=params).json()
+    assert data["summary"]["previous_total"] == base["summary"]["previous_total"] == 1
+
+
 def test_granularity_changes_the_buckets(client):
     day = client.get("/api/analytics", params={"range": "30d", "granularity": "day"}).json()["series"]
     week = client.get("/api/analytics", params={"range": "30d", "granularity": "week"}).json()["series"]

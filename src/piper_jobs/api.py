@@ -226,9 +226,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         session: Session = Depends(session_dep),
     ):
         now = utcnow()
-        today = (now + timedelta(minutes=tz_offset)).date()
-        start, end = filters.date_bounds(today)
-        previous = previous_filters(filters, today)
+        # same UTC-date window as load_rows, so totals agree with /api/stats; tz_offset only shifts local days
+        start, end = filters.date_bounds(now.date())
+        previous = previous_filters(filters, now.date())
         previous_total = len(rows_for(session, previous)) if previous else None
         return compute_analytics(rows_for(session, filters), now, tz_offset, granularity, start, end, previous_total)
 

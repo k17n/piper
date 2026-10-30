@@ -22,7 +22,8 @@ export function Cohorts({ data, dark }: { data: Analytics["cohorts"]; dark: bool
         formatter: (params: { dataIndex: number }[]) => {
           const p = data[params[0].dataIndex];
           const note = p.maturing ? '<br/><span style="opacity:.7">still maturing</span>' : "";
-          return `<b>${fmtBucket(p.week, "week")}</b><br/>${pct(p.responded)} responded · ${p.total} applied${note}`;
+          const small = p.total < 5 ? " (small sample)" : "";
+          return `<b>${fmtBucket(p.week, "week")}</b><br/>${pct(p.responded)} responded · ${p.total} applied${small}${note}`;
         },
       },
       xAxis: {

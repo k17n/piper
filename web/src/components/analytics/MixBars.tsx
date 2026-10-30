@@ -16,15 +16,19 @@ export function MixBars({
   title,
   onSelect,
   empty = "Nothing to show yet",
+  total: denominator,
 }: {
   items: MixItem[];
   title: string;
   onSelect?: (s: Selection) => void;
   empty?: string;
+  /** Denominator for the share; defaults to the sum of the listed items. */
+  total?: number;
 }) {
-  const total = items.reduce((sum, i) => sum + i.count, 0);
+  const sum = items.reduce((s, i) => s + i.count, 0);
+  const total = denominator && denominator > 0 ? denominator : sum;
   const max = Math.max(1, ...items.map((i) => i.count));
-  if (total === 0) return <div className="py-6 text-center text-sm text-muted">{empty}</div>;
+  if (sum === 0) return <div className="py-6 text-center text-sm text-muted">{empty}</div>;
   return (
     <ul className="flex flex-col gap-1">
       {items.map((i) => {
