@@ -10,6 +10,7 @@ import { AppsOverTime } from "./AppsOverTime";
 import { CategoryOverTime } from "./CategoryOverTime";
 import { Cohorts } from "./Cohorts";
 import { ConversionTable } from "./ConversionTable";
+import { InsightsCard } from "./InsightsCard";
 import { MixBars } from "./MixBars";
 import { Section, Segmented } from "./Section";
 import { SummaryTiles } from "./SummaryTiles";
@@ -36,6 +37,7 @@ export function AnalyticsTab({ filters, dark, onSelect }: { filters: Filters; da
   return (
     <div className="anim-fade-up flex flex-col gap-4">
       <SummaryTiles s={data?.summary} />
+      <InsightsCard filters={filters} />
       {data && (
         <Section
           title="Applications over time"

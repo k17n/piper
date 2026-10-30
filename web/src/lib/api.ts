@@ -155,6 +155,12 @@ export interface Analytics {
   outcomes: AnalyticsGroup[];
 }
 
+export interface InsightSummary {
+  status: "ready" | "pending" | "insufficient_data" | "fallback";
+  text: string | null;
+  facts: string[];
+}
+
 export interface Application {
   id: number;
   company: string;
@@ -281,6 +287,16 @@ export const api = {
     p.set("granularity", granularity);
     p.set("tz_offset", String(tzOffset)); // minutes ahead of UTC; getTimezoneOffset() is minutes behind
     return http<Analytics>(`/api/analytics?${p}`);
+  },
+  analyticsSummary: (f: Filters, tzOffset = -new Date().getTimezoneOffset()) => {
+    const p = filterParams(f);
+    p.set("tz_offset", String(tzOffset));
+    return http<InsightSummary>(`/api/analytics/summary?${p}`);
+  },
+  refreshAnalyticsSummary: (f: Filters, tzOffset = -new Date().getTimezoneOffset()) => {
+    const p = filterParams(f);
+    p.set("tz_offset", String(tzOffset));
+    return http<InsightSummary>(`/api/analytics/summary/refresh?${p}`, { method: "POST" });
   },
   applications: (f: Filters, ids?: number[]) => {
     const p = filterParams(f);
