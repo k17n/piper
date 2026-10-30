@@ -254,7 +254,8 @@ view can be default.
 
 A tab showing applications per day (with 7-day average, streak and best day), the mix of role types,
 sources and seniority, an activity heatmap, and response rates by those same dimensions. It follows the
-same filters and saved views. Full requirements: [PRD-analytics.md](PRD-analytics.md).
+same filters and saved views. An Insights card at the top adds a short written summary of the current
+filters, produced by the local model from calculated facts only and cached. Full requirements: [PRD-analytics.md](PRD-analytics.md).
 
 ---
 
@@ -283,13 +284,14 @@ Read from environment variables, then `<data dir>/.env`, then `./.env`.
   last_event_at, current_stage, manual_override, category, category_manual, job_url, notes)`
 - `review_queue(id, email_id, reason, extracted, excerpt, resolved)`
 - `saved_views(id, name, filters, is_default, created_at, updated_at)`
+- `insight_summaries(hash, text, model, prompt_version, created_at, last_used_at)`
 - `sync_state(key, value)` — last sync time, filter signature, Gmail address
 
 New columns are added automatically to existing databases on startup.
 
 ## 9. API (localhost only)
 
-`GET /api/meta`, `GET /api/sankey`, `GET /api/stats`, `GET /api/insights`, `GET /api/analytics`, `GET /api/applications`,
+`GET /api/meta`, `GET /api/sankey`, `GET /api/stats`, `GET /api/insights`, `GET /api/analytics`, `GET /api/analytics/summary`, `POST /api/analytics/summary/refresh`, `GET /api/applications`,
 `POST /api/applications`, `PATCH|DELETE /api/applications/{id}`, `POST /api/applications/{id}/events`,
 `POST /api/job-link/preview`, `GET /api/emails/{id}/thread`, `GET /api/review-queue`,
 `POST /api/review-queue/{id}/resolve`, `GET|POST /api/views`, `PATCH|DELETE /api/views/{id}`,

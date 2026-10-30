@@ -144,7 +144,7 @@ Each bar or list row is clickable and opens the side panel with those applicatio
 - Layout: a two-column grid from `lg`, one column below `lg` (the sidebar leaves too little width for two columns at `md`). Nothing causes horizontal page
   scroll.
 
-### 6.9 Written summary (planned, not built)
+### 6.9 Written summary
 
 An **Insights** card at the top of the tab with two to four plain sentences about the current filters,
 written by the local model, for example: "41 applications in 30 days, 58% Product. LinkedIn is most of
@@ -164,8 +164,8 @@ your volume but has the lowest reply rate. The last two weeks may still be waiti
      them. Generation never runs while a sync is running, and runs once the sync ends.
      Generation starts only after the facts have been unchanged for 10 seconds, so a burst of edits
      (several applications added in a row) produces one summary, not one per edit. If the facts change
-     while a summary is being written, the result is discarded rather than shown against the wrong
-     numbers.
+     while a summary is being written, the result is saved under its own facts and is only ever shown
+     for those facts.
   5. Changes that leave the facts the same (notes, job links) hit the existing entry and call no model.
   6. A small refresh control regenerates with different wording and replaces the cached text.
 - **When the cache is cleared:** there is no timer. An entry stops being used when its facts change
@@ -178,6 +178,7 @@ your volume but has the lowest reply rate. The last two weeks may still be waiti
   derived from counts, never email content.
 - **API:** `GET /api/analytics/summary?<shared filters>&tz_offset=` returns `{status: "ready" | "pending"
   | "insufficient_data" | "fallback", text, facts}`; the page polls while `pending`.
+  If the model cannot be reached, the card shows the facts (`fallback`) and does not retry for 5 minutes.
 
 ## 7. Technical design
 
