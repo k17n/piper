@@ -5,18 +5,20 @@ import { Section } from "./Section";
 
 const POLL_MS = 3000;
 
-function Facts({ facts }: { facts: string[] }) {
+/** Placeholder lines shown while the summary loads or is being written. */
+function Skeleton() {
   return (
-    <ul className="list-disc space-y-1 pl-5 text-sm text-ink-2">
-      {facts.map((f, i) => (
-        <li key={`${i}-${f}`}>{f}</li>
-      ))}
-    </ul>
+    <div className="flex flex-col gap-2" role="status" aria-label="Writing a summary">
+      <div className="h-3 w-full animate-pulse rounded bg-surface-2" />
+      <div className="h-3 w-11/12 animate-pulse rounded bg-surface-2" />
+      <div className="h-3 w-4/5 animate-pulse rounded bg-surface-2" />
+      <div className="h-3 w-2/3 animate-pulse rounded bg-surface-2" />
+    </div>
   );
 }
 
-/** A short written summary of the view, from the local model. While it is being written, or if it
- * cannot be, the plain numbers it is based on are shown instead. */
+/** A short written summary of the view, from the local model. While it is being written a skeleton
+ * is shown; if it cannot be written, a short note says so. */
 export function InsightsCard({ filters }: { filters: Filters }) {
   const queryClient = useQueryClient();
   const queryKey = ["analytics", "summary", filters]; // starts with "analytics", so data changes refresh it
@@ -40,7 +42,7 @@ export function InsightsCard({ filters }: { filters: Filters }) {
   if (!data) {
     return (
       <Section title="Insights">
-        <div className="h-12" />
+        <Skeleton />
       </Section>
     );
   }
@@ -73,17 +75,9 @@ export function InsightsCard({ filters }: { filters: Filters }) {
       {data.status === "insufficient_data" && (
         <p className="text-sm text-ink-2">A summary appears once there are at least 10 applications in this view.</p>
       )}
-      {data.status === "pending" && (
-        <div className="flex flex-col gap-2">
-          <p className="text-sm text-muted">Writing a summary…</p>
-          <Facts facts={data.facts} />
-        </div>
-      )}
+      {data.status === "pending" && <Skeleton />}
       {data.status === "fallback" && (
-        <div className="flex flex-col gap-2">
-          <p className="text-sm text-muted">A summary could not be written just now, so here are the numbers.</p>
-          <Facts facts={data.facts} />
-        </div>
+        <p className="text-sm text-muted">A summary could not be written just now. It will be retried automatically.</p>
       )}
     </Section>
   );
