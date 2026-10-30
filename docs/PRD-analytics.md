@@ -156,12 +156,17 @@ your volume but has the lowest reply rate. The last two weeks may still be waiti
   labelled lines and is told to use no number that is not in them.
 - **Guard:** every number in the reply must appear in the facts; if one does not, the card shows the
   facts as plain bullets instead. The model describes patterns only and gives no advice.
+  The check covers digits only; spelled-out numbers and comparisons are not verified.
+  The date range is given to the model by its length ("over 30 days"), never as dates, so dates cannot
+  widen the set of numbers a reply may use.
 - **Low data:** under 10 applications the card says there is not enough data yet and calls no model.
 - **Automatic and cached.** The card fills itself; it is not behind a button.
   1. The facts for the current filters are hashed together with the model name and a prompt version.
   2. A stored summary for that hash is shown immediately.
   3. Otherwise the plain facts show at once and the summary generates in the background, then replaces
      them. Generation never runs while a sync is running, and runs once the sync ends.
+     The sync hold-off applies when a generation starts and to syncs run by the app itself; a summary
+     already being written when a sync starts is allowed to finish.
      Generation starts only after the facts have been unchanged for 10 seconds, so a burst of edits
      (several applications added in a row) produces one summary, not one per edit. If the facts change
      while a summary is being written, the result is saved under its own facts and is only ever shown
@@ -169,8 +174,8 @@ your volume but has the lowest reply rate. The last two weeks may still be waiti
   5. Changes that leave the facts the same (notes, job links) hit the existing entry and call no model.
   6. A small refresh control regenerates with different wording and replaces the cached text.
 - **When the cache is cleared:** there is no timer. An entry stops being used when its facts change
-  (new or edited applications, a new sync, different filters, or the day rolling over if a fact depends
-  on today, such as the streak). Entries for another model or prompt version are deleted on startup.
+  (new or edited applications, a new sync, different filters, or time passing, for facts that depend on
+  today (streak, this week, how long applications have been quiet)). Entries for another model or prompt version are deleted on startup.
   Only the 50 most recently used entries are kept; older ones are deleted as new ones are saved.
   `piper reset` removes them with the database.
 - **Stored data:** a new table `insight_summaries(hash, text, model, prompt_version, created_at,

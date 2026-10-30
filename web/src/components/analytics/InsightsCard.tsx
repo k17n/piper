@@ -20,7 +20,7 @@ function Facts({ facts }: { facts: string[] }) {
 export function InsightsCard({ filters }: { filters: Filters }) {
   const queryClient = useQueryClient();
   const queryKey = ["analytics", "summary", filters]; // starts with "analytics", so data changes refresh it
-  const { data } = useQuery({
+  const { data, isError } = useQuery({
     queryKey,
     queryFn: () => api.analyticsSummary(filters),
     refetchInterval: (query) => (query.state.data?.status === "pending" ? POLL_MS : false),
@@ -30,6 +30,13 @@ export function InsightsCard({ filters }: { filters: Filters }) {
     onSuccess: (result) => queryClient.setQueryData(queryKey, result),
   });
 
+  if (!data && isError) {
+    return (
+      <Section title="Insights">
+        <p className="text-sm text-muted">Could not load the summary.</p>
+      </Section>
+    );
+  }
   if (!data) {
     return (
       <Section title="Insights">
