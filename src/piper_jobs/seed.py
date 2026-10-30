@@ -23,6 +23,9 @@ COMPANIES = [
 ROLES = [
     "Software Engineer", "Backend Engineer", "Full Stack Developer", "Senior Software Engineer",
     "Platform Engineer", "Data Engineer", "Frontend Engineer", "SDE II",
+    "Product Designer", "Senior Product Designer", "UX Designer", "Design Lead",
+    "Product Manager", "Senior Product Manager", "Associate Product Manager",
+    "Investment Associate",
 ]
 SOURCES = ["linkedin"] * 5 + ["ats"] * 3 + ["recruiter", "direct"]
 
