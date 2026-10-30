@@ -1,13 +1,15 @@
 import { useState } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { api, type Category, type Filters, type Granularity } from "../../lib/api";
-import { CATEGORY_COLOR, SENIORITY_LABEL, categoryLabel, sourceLabel, stageLabel } from "../../lib/stages";
+import { CATEGORY_COLOR, SENIORITY_LABEL, categoryLabel, sourceLabel, stageColor, stageLabel } from "../../lib/stages";
 import type { Selection } from "../SankeyChart";
 import { Empty } from "../ui";
 import { WEEKDAYS, defaultGranularity } from "./format";
 import { Heatmap } from "./Heatmap";
 import { AppsOverTime } from "./AppsOverTime";
 import { CategoryOverTime } from "./CategoryOverTime";
+import { Cohorts } from "./Cohorts";
+import { ConversionTable } from "./ConversionTable";
 import { MixBars } from "./MixBars";
 import { Section, Segmented } from "./Section";
 import { SummaryTiles } from "./SummaryTiles";
@@ -107,7 +109,36 @@ export function AnalyticsTab({ filters, dark, onSelect }: { filters: Filters; da
           </Section>
         </div>
       )}
-      {/* widgets: keep this line, new sections go above it */}
+      {data && (
+        <>
+          <Section title="What works" hint="Share of applications that got a reply or an interview, with how many that is">
+            <ConversionTable conversion={data.conversion} />
+          </Section>
+          <div className="grid gap-4 lg:grid-cols-2">
+            {data.summary.total >= 7 && (
+              <Section title="Response rate by week applied" hint="Dashed weeks may still be waiting for replies">
+                <Cohorts data={data.cohorts} dark={dark} />
+              </Section>
+            )}
+            <Section
+              title="Time to first reply"
+              hint={data.response_time.median == null ? "No replies yet" : `Median ${data.response_time.median.toFixed(1)} days`}
+            >
+              <MixBars title="Replied in" items={data.response_time.buckets.map((b) => ({ ...b, label: b.key }))} empty="No replies yet" />
+            </Section>
+            <Section title="Open applications by days since last update" hint="Quiet ones become “ghosted” after the ghost limit">
+              <MixBars title="Quiet for" onSelect={onSelect} items={data.open_by_age.map((b) => ({ ...b, label: b.key }))} empty="No open applications" />
+            </Section>
+            <Section title="Outcomes">
+              <MixBars
+                title="Outcome"
+                onSelect={onSelect}
+                items={data.outcomes.map((o) => ({ ...o, label: stageLabel(o.key), color: o.key === "active" ? undefined : stageColor(o.key) }))}
+              />
+            </Section>
+          </div>
+        </>
+      )}
     </div>
   );
 }
