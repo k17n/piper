@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Draft — not built |
+| **Status** | Built |
 | **Parent** | [P.I.P.E.R. PRD](PRD.md), §12 Roadmap ("Insights view") |
 | **Runs on** | The existing stack: SQLite → FastAPI → React + ECharts. No new services, no new network calls |
 | **Privacy** | Unchanged. Every number is computed locally from data already in the database |
@@ -255,9 +255,6 @@ with an empty database.
 
 ## 10. Open questions
 
-1. Should **Applied date** prefer the earliest `applied` event over `first_seen` when they differ (for
-   example a manual application whose first email arrived later)? Default for v1: `first_seen`, to match
-   the table.
-2. Should *Withdrawn* applications count toward "applications per day"? Default: yes — the effort
-   happened.
-3. Is a 5-application floor for the "small sample" marker right for a user with ~50 applications?
+None open. Settled in the build: **Applied date** uses `first_seen` (matches the table), *Withdrawn*
+applications count toward applications per day (the effort happened), and the small-sample marker
+applies below 5 applications.

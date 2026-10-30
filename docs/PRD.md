@@ -250,6 +250,12 @@ view can be default.
 | `piper stats [--range …]` | Print funnel stats |
 | `piper reset [--yes]` | Delete the database and Gmail token |
 
+### 6.15 Analytics ✅
+
+A tab showing applications per day (with 7-day average, streak and best day), the mix of role types,
+sources and seniority, an activity heatmap, and response rates by those same dimensions. It follows the
+same filters and saved views. Full requirements: [PRD-analytics.md](PRD-analytics.md).
+
 ---
 
 ## 7. Configuration
@@ -283,7 +289,7 @@ New columns are added automatically to existing databases on startup.
 
 ## 9. API (localhost only)
 
-`GET /api/meta`, `GET /api/sankey`, `GET /api/stats`, `GET /api/insights`, `GET /api/applications`,
+`GET /api/meta`, `GET /api/sankey`, `GET /api/stats`, `GET /api/insights`, `GET /api/analytics`, `GET /api/applications`,
 `POST /api/applications`, `PATCH|DELETE /api/applications/{id}`, `POST /api/applications/{id}/events`,
 `POST /api/job-link/preview`, `GET /api/emails/{id}/thread`, `GET /api/review-queue`,
 `POST /api/review-queue/{id}/resolve`, `GET|POST /api/views`, `PATCH|DELETE /api/views/{id}`,
@@ -325,7 +331,6 @@ Frontend: Vite + React + TypeScript + Tailwind, ECharts (Sankey), TanStack Query
 | 🔜 **Writing Studio** | Grounded cover letters, LinkedIn, WhatsApp and email drafts from a local knowledge base, stored as threads with memory across sessions — see [PRD-writing-studio.md](PRD-writing-studio.md) |
 | 🔜 In-app **Connect Gmail** / "Sign in with Google" button | Removes the command-line step; optional bundled OAuth client for small groups (Google limits unverified apps to 100 test users with weekly re-sign-in) |
 | 🔜 Kanban board | Stage columns; dragging a card sets a manual override |
-| 🔜 **Analytics tab** | Applications per day, what types of roles, and what converts, with activity heatmap, mix charts and response rate by source/type/seniority — see [PRD-analytics.md](PRD-analytics.md) (`/api/insights` exists as a starting point) |
 | 🔜 ⌘K command palette | Jump to a company, switch views, trigger a sync |
 | 🔜 `piper eval` | Accuracy per field on labelled samples, to compare models |
 | 🔜 Anthropic provider | Optional cloud model behind `LLM_PROVIDER=anthropic` |
