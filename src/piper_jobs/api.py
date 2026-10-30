@@ -28,6 +28,7 @@ from .resolver import (apply_event, normalize_role, recompute_all_categories, re
 from .sankey import build_sankey
 from .schema import Source, Stage
 from .stats import compute_insights, compute_stats
+from .analytics import compute_analytics, previous_filters
 
 STATIC_DIR = Path(__file__).parent / "static"
 
@@ -216,6 +217,20 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @app.get("/api/insights")
     def insights(filters: Filters = Depends(get_filters), session: Session = Depends(session_dep)):
         return compute_insights(rows_for(session, filters))
+
+    @app.get("/api/analytics")
+    def analytics(
+        filters: Filters = Depends(get_filters),
+        granularity: Literal["day", "week", "month"] = "day",
+        tz_offset: int = Query(0, ge=-840, le=840),  # minutes ahead of UTC, so days match the user's
+        session: Session = Depends(session_dep),
+    ):
+        now = utcnow()
+        today = (now + timedelta(minutes=tz_offset)).date()
+        start, end = filters.date_bounds(today)
+        previous = previous_filters(filters, today)
+        previous_total = len(rows_for(session, previous)) if previous else None
+        return compute_analytics(rows_for(session, filters), now, tz_offset, granularity, start, end, previous_total)
 
     @app.get("/api/applications")
     def applications(
