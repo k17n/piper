@@ -151,7 +151,7 @@ def test_numbers_in():
 def test_is_grounded_accepts_only_numbers_from_the_facts(sample_analytics):
     facts = build_facts(sample_analytics())
     assert is_grounded("You sent 24 applications, 58% of them Product.", facts)
-    assert not is_grounded("You sent 25 applications.", facts)
+    assert not is_grounded("You sent 26 applications.", facts)
     assert not is_grounded("   ", facts)
 
 
