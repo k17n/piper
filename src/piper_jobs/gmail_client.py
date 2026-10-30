@@ -25,6 +25,7 @@ class GmailNotConfigured(RuntimeError):
 
 
 def get_service(settings: Settings, interactive: bool = True):
+    from google.auth.exceptions import RefreshError
     from google.auth.transport.requests import Request
     from google.oauth2.credentials import Credentials
     from google_auth_oauthlib.flow import InstalledAppFlow
@@ -34,11 +35,20 @@ def get_service(settings: Settings, interactive: bool = True):
     if settings.token_path.is_file():
         creds = Credentials.from_authorized_user_file(str(settings.token_path), SCOPES)
     if not creds or not creds.valid:
+        revoked = False
         if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
+            try:
+                creds.refresh(Request())
+            except RefreshError:
+                # expired or revoked (apps in "Testing" lose the sign-in after 7 days): sign in again
+                revoked = True
+        if revoked or not (creds and creds.valid):
             if not interactive:
-                raise GmailNotConfigured("Gmail is not connected yet. Run `piper sync` once.")
+                raise GmailNotConfigured(
+                    "Gmail sign-in expired. Run `piper sync` once to sign in again."
+                    if revoked
+                    else "Gmail is not connected yet. Run `piper sync` once."
+                )
             if not settings.credentials_path.is_file():
                 raise GmailNotConfigured(
                     f"No OAuth client found at {settings.credentials_path}. "
