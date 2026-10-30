@@ -4,7 +4,8 @@ import { api, type Category, type Filters, type Granularity } from "../../lib/ap
 import { CATEGORY_COLOR, SENIORITY_LABEL, categoryLabel, sourceLabel, stageLabel } from "../../lib/stages";
 import type { Selection } from "../SankeyChart";
 import { Empty } from "../ui";
-import { defaultGranularity } from "./format";
+import { WEEKDAYS, defaultGranularity } from "./format";
+import { Heatmap } from "./Heatmap";
 import { AppsOverTime } from "./AppsOverTime";
 import { CategoryOverTime } from "./CategoryOverTime";
 import { MixBars } from "./MixBars";
@@ -91,6 +92,20 @@ export function AnalyticsTab({ filters, dark, onSelect }: { filters: Filters; da
             </Section>
           )}
         </>
+      )}
+      {data && (
+        <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
+          <Section title="Activity" hint="Each square is a day; darker means more applications">
+            <Heatmap days={data.daily} onSelect={onSelect} />
+          </Section>
+          <Section title="Day of the week">
+            <MixBars
+              title="Applied on"
+              onSelect={onSelect}
+              items={data.weekday.map((w) => ({ key: String(w.day), label: WEEKDAYS[w.day], count: w.count, ids: w.ids }))}
+            />
+          </Section>
+        </div>
       )}
       {/* widgets: keep this line, new sections go above it */}
     </div>
