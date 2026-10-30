@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+import datetime
 import hashlib
 import re
 
-PROMPT_VERSION = 1  # bump when the prompt changes: older cached summaries are then discarded
+PROMPT_VERSION = 2  # bump when the prompt changes: older cached summaries are then discarded
 MIN_APPLICATIONS = 10  # below this there is nothing worth summarising
 MIN_GROUP = 5  # smaller groups are too small to compare
 
@@ -31,7 +32,7 @@ _NUMBER = re.compile(r"\d+(?:\.\d+)?")
 
 
 def _pct(rate: float) -> str:
-    return f"{round(rate * 100)}%"
+    return f"{int(rate * 100 + 0.5)}%"  # half up, like the page
 
 
 def _shares(groups: list[dict], labels: dict[str, str], top: int = 3) -> str | None:
@@ -44,7 +45,12 @@ def _shares(groups: list[dict], labels: dict[str, str], top: int = 3) -> str | N
 
 def build_facts(a: dict) -> list[str]:
     s = a["summary"]
-    first = f"Applications from {a['range']['from'] or 'the start'} to {a['range']['to']}: {s['total']}"
+    start = a["range"]["from"]
+    if start is None:
+        first = f"Applications over all time: {s['total']}"
+    else:  # described by its length: dates would put their digits among the numbers a reply may use
+        days = (datetime.date.fromisoformat(a["range"]["to"]) - datetime.date.fromisoformat(start)).days + 1
+        first = f"Applications over {days} days: {s['total']}"
     if s["previous_total"] is not None:
         first += f" (previous period of the same length: {s['previous_total']})"
     facts = [

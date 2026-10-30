@@ -1,3 +1,5 @@
+import re
+
 from piper_jobs.insights import (
     PROMPT_VERSION, build_facts, build_messages, facts_hash, is_grounded, numbers_in,
     ungrounded_numbers,
@@ -6,7 +8,7 @@ from piper_jobs.insights import (
 
 def test_facts_describe_pace_mix_and_conversion(sample_analytics):
     facts = build_facts(sample_analytics())
-    assert facts[0] == "Applications from 2026-10-01 to 2026-10-30: 24 (previous period of the same length: 18)"
+    assert facts[0] == "Applications over 30 days: 24 (previous period of the same length: 18)"
     assert "Role types: Product 58% (14), Design 25% (6), Other 17% (4)" in facts
     assert "Sources: LinkedIn 67% (16), Company site / ATS 33% (8)" in facts
     assert "Source LinkedIn: 16 applied, 6% replied, 0% interviewed" in facts
@@ -27,7 +29,7 @@ def test_facts_skip_what_does_not_apply(sample_analytics):
     a = sample_analytics(response_time={"buckets": [], "median": None}, cohorts=[], open_by_age=[])
     a["summary"]["previous_total"] = None
     facts = build_facts(a)
-    assert facts[0] == "Applications from 2026-10-01 to 2026-10-30: 24"
+    assert facts[0] == "Applications over 30 days: 24"
     assert not any(f.startswith(("Median", "The most recent", "Open applications")) for f in facts)
 
 
@@ -73,3 +75,36 @@ def test_an_unexpected_key_is_shown_as_other_never_raw(sample_analytics):
     facts = build_facts(a)
     assert any("Other 27%" in f or f.startswith("Source Other:") for f in facts)
     assert not any("weird" in f or "<script>" in f for f in facts)
+
+
+def test_no_fact_contains_a_date(sample_analytics):
+    assert not any(re.search(r"\d{4}-\d{2}-\d{2}", f) for f in build_facts(sample_analytics()))
+
+
+def test_all_time_range_is_described_without_dates(sample_analytics):
+    a = sample_analytics(range={"from": None, "to": "2026-10-30"})
+    a["summary"]["previous_total"] = None
+    assert build_facts(a)[0] == "Applications over all time: 24"
+
+
+def test_digits_from_the_range_dates_are_not_allowed(sample_analytics):
+    facts = build_facts(sample_analytics())
+    assert not is_grounded("You sent 24 applications in 2026.", facts)
+    assert not is_grounded("You sent 24 applications up to 2026-10-30.", facts)
+    assert not is_grounded("You sent 24 applications to 05/03.", facts)
+    assert is_grounded("You sent 24 applications over 30 days.", facts)
+
+
+def test_prompt_version_is_two():
+    assert PROMPT_VERSION == 2
+
+
+def test_percentages_round_half_up(sample_analytics):
+    a = sample_analytics()
+    a["conversion"]["source"] = [
+        {"key": "linkedin", "total": 16, "responded": 0.125, "interviewed": 0.375, "offers": 0, "median_days": None},
+        {"key": "ats", "total": 8, "responded": 0.0625, "interviewed": 0.0, "offers": 0, "median_days": None},
+    ]
+    facts = build_facts(a)
+    assert "Source LinkedIn: 16 applied, 13% replied, 38% interviewed" in facts
+    assert "Source Company site / ATS: 8 applied, 6% replied, 0% interviewed" in facts

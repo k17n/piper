@@ -28,7 +28,7 @@ def client(settings):
 
         def generate(messages, temperature):
             temperatures.append(temperature)
-            total = re.search(r"Applications from .*?: (\d+)", messages[-1]["content"]).group(1)
+            total = re.search(r"Applications over .*?: (\d+)", messages[-1]["content"]).group(1)
             return f"You sent {total} applications."
 
         svc = c.app.state.summaries
