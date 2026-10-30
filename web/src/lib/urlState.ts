@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { DEFAULT_FILTERS, filterParams, normalizeFilters, type Filters, type RangeKey } from "./api";
 
-export type Tab = "dashboard" | "applications" | "review";
-const TABS: Tab[] = ["dashboard", "applications", "review"];
+export type Tab = "dashboard" | "analytics" | "applications" | "review";
+const TABS: Tab[] = ["dashboard", "analytics", "applications", "review"];
 const FILTER_KEYS = ["range", "from", "to", "sources", "stages", "categories", "q", "include_ghosted"];
 
 interface UrlState {

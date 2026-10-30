@@ -11,6 +11,7 @@ import { AddApplication } from "./components/AddApplication";
 import { ApplicationsTable } from "./components/ApplicationsTable";
 import { ReviewQueue } from "./components/ReviewQueue";
 import { SyncIndicator } from "./components/SyncIndicator";
+import { AnalyticsTab } from "./components/analytics/AnalyticsTab";
 import { Button, Empty, cx } from "./components/ui";
 
 /** The brand: P.I.P.E.R. (Pipeline, Interviews, Pitches, Emails & Résumés), dots in the accent color. */
@@ -49,6 +50,7 @@ function useTheme() {
 
 const NAV: { tab: Tab; label: string; icon: string }[] = [
   { tab: "dashboard", label: "Dashboard", icon: "◧" },
+  { tab: "analytics", label: "Analytics", icon: "▤" },
   { tab: "applications", label: "Applications", icon: "☰" },
   { tab: "review", label: "Review", icon: "◎" },
 ];
@@ -166,6 +168,8 @@ export default function App() {
               </section>
             </div>
           )}
+
+          {tab === "analytics" && <AnalyticsTab filters={filters} dark={dark} onSelect={onSelect} />}
 
           {tab === "applications" && (
             <div className="anim-fade-up flex flex-col gap-3">
