@@ -6,8 +6,8 @@ from sqlmodel import select
 from piper_jobs.db import InsightSummary, get_engine, utcnow
 from piper_jobs.insights import MIN_APPLICATIONS, PROMPT_VERSION, build_facts, facts_hash
 from piper_jobs.summaries import (
-    DEBOUNCE_SECONDS, MAX_ENTRIES, RETRY_AFTER_SECONDS, SummaryService, delete_cached, get_cached,
-    prune_excess, prune_stale, save,
+    DEBOUNCE_SECONDS, GENERATE_TIMEOUT_SECONDS, MAX_ENTRIES, RETRY_AFTER_SECONDS, SummaryService, delete_cached,
+    get_cached, ollama_generate, prune_excess, prune_stale, save,
 )
 
 
@@ -197,3 +197,112 @@ def test_refresh_asks_again_with_different_wording(make_service, sample_analytic
     svc.refresh(a)  # no quiet period
     assert model.temperatures == [0.6]
     assert svc.status(a) == {"status": "ready", "text": "You sent 24 jobs.", "facts": build_facts(a)}
+
+
+def _recording_service(settings, model, clock=None):
+    clock = clock or Clock()
+    spawned = []
+    svc = SummaryService(settings, get_engine(settings.db_path), is_syncing=lambda: False, generate=model,
+                         spawn=spawned.append, clock=clock)
+    return svc, clock, spawned
+
+
+def test_a_spawn_failure_falls_back_and_can_be_retried(settings, sample_analytics):
+    model = Recorder()
+    clock = Clock()
+
+    def broken(fn):
+        raise RuntimeError("can't start new thread")
+
+    svc = SummaryService(settings, get_engine(settings.db_path), is_syncing=lambda: False, generate=model,
+                         spawn=broken, clock=clock)
+    a = sample_analytics()
+    svc.status(a)
+    clock.now += DEBOUNCE_SECONDS
+    result = svc.status(a)
+    assert result["status"] == "fallback" and result["text"] is None and result["facts"] == build_facts(a)
+    svc.spawn = lambda fn: fn()
+    clock.now += RETRY_AFTER_SECONDS + 1
+    svc.status(a)  # new quiet period
+    clock.now += DEBOUNCE_SECONDS
+    svc.status(a)
+    assert model.calls == 1
+    assert svc.status(a)["status"] == "ready"
+
+
+def test_ollama_client_gets_a_timeout(monkeypatch, settings):
+    import ollama
+
+    captured = {}
+
+    class FakeClient:
+        def __init__(self, host=None, **kwargs):
+            captured.update(kwargs)
+
+        def chat(self, **kwargs):
+            class Reply:
+                class message:
+                    content = "hi"
+
+            return Reply
+
+    monkeypatch.setattr(ollama, "Client", FakeClient)
+    assert ollama_generate(settings)([], 0.0) == "hi"
+    assert captured["timeout"] == GENERATE_TIMEOUT_SECONDS == 120
+
+
+def test_refresh_during_a_run_still_regenerates_with_new_wording(settings, sample_analytics):
+    model = Recorder()
+    svc, clock, spawned = _recording_service(settings, model)
+    a = sample_analytics()
+    svc.status(a)
+    clock.now += DEBOUNCE_SECONDS
+    svc.status(a)  # run #1 recorded, not executed
+    assert len(spawned) == 1
+    svc.refresh(a)
+    assert len(spawned) == 1  # still only one at a time
+    spawned[0]()
+    assert model.temperatures == [0.0]
+    svc.status(a)  # the refresh asked for a new generation
+    assert len(spawned) == 2
+    model.reply = "You sent 24 jobs."
+    spawned[1]()
+    assert model.temperatures == [0.0, 0.6]
+    assert svc.status(a) == {"status": "ready", "text": "You sent 24 jobs.", "facts": build_facts(a)}
+
+
+def test_generation_starts_exactly_at_the_quiet_period(settings, sample_analytics):
+    svc, clock, spawned = _recording_service(settings, Recorder())
+    a = sample_analytics()
+    svc.status(a)
+    clock.now += DEBOUNCE_SECONDS - 1
+    svc.status(a)
+    assert spawned == []
+    clock.now += 1
+    svc.status(a)
+    assert len(spawned) == 1
+
+
+def test_retry_window_boundaries(make_service, sample_analytics):
+    model = Recorder(error=ConnectionError("down"))
+    svc, clock = make_service(model)
+    a = sample_analytics()
+    svc.status(a)
+    clock.now += DEBOUNCE_SECONDS
+    svc.status(a)  # fails at this moment
+    clock.now += RETRY_AFTER_SECONDS - 1
+    assert svc.status(a)["status"] == "fallback"
+    clock.now += 2
+    assert svc.status(a)["status"] == "pending"
+
+
+def test_only_one_generation_at_a_time(settings, sample_analytics):
+    svc, clock, spawned = _recording_service(settings, Recorder())
+    a = sample_analytics()
+    svc.status(a)
+    clock.now += DEBOUNCE_SECONDS
+    svc.status(a)
+    svc.status(a)
+    clock.now += 60
+    svc.status(a)
+    assert len(spawned) == 1

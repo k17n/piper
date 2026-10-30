@@ -70,6 +70,7 @@ def prune_stale(session: Session, model: str, prompt_version: int) -> None:
 DEBOUNCE_SECONDS = 10  # the same facts must be requested this long before the model is asked
 RETRY_AFTER_SECONDS = 300  # after a failed or ungrounded reply
 VARIANT_TEMPERATURE = 0.6  # "write it again" must not return the same words
+GENERATE_TIMEOUT_SECONDS = 120  # a hung Ollama must not block summaries forever
 _MAX_TRACKED = 100
 
 
@@ -77,7 +78,7 @@ def ollama_generate(settings: Settings) -> Callable[[list[dict], float], str]:
     def generate(messages: list[dict], temperature: float) -> str:
         import ollama
 
-        reply = ollama.Client(host=settings.ollama_host).chat(
+        reply = ollama.Client(host=settings.ollama_host, timeout=GENERATE_TIMEOUT_SECONDS).chat(
             model=settings.ollama_model, messages=messages, options={"temperature": temperature}
         )
         return reply.message.content or ""
@@ -116,6 +117,7 @@ class SummaryService:
         self._failed: dict[str, float] = {}
         self._variant: set[str] = set()
         self._running: str | None = None
+        self._regenerate: set[str] = set()
 
     @property
     def model(self) -> str:
@@ -131,6 +133,7 @@ class SummaryService:
         if text:
             return {"status": "ready", "text": text, "facts": facts}
         now = self.clock()
+        syncing = self.is_syncing()
         with self._lock:
             failed_at = self._failed.get(key)
             if failed_at is not None and now - failed_at < RETRY_AFTER_SECONDS:
@@ -138,12 +141,28 @@ class SummaryService:
             if len(self._first_seen) > _MAX_TRACKED:
                 self._first_seen.clear()
             first = self._first_seen.setdefault(key, now)
-            start = self._running is None and not self.is_syncing() and now - first >= self.debounce
+            start = self._running is None and not syncing and now - first >= self.debounce
+            temperature = VARIANT_TEMPERATURE if key in self._variant else 0.0
             if start:
                 self._running = key
         if start:
-            self.spawn(lambda: self._generate(key, facts))
+            try:
+                self.spawn(lambda: self._generate(key, facts, temperature))
+            except Exception:  # e.g. no thread could be started: show the facts instead of failing the request
+                log.warning("Could not start the summary", exc_info=True)
+                with self._lock:
+                    self._running = None
+                    self._remember_failure(key, now)
+                return {"status": "fallback", "text": None, "facts": facts}
         return {"status": "pending", "text": None, "facts": facts}
+
+    def _remember_failure(self, key: str, now: float) -> None:
+        """Caller holds the lock."""
+        if len(self._failed) > _MAX_TRACKED:
+            self._failed = {k: t for k, t in self._failed.items() if now - t < RETRY_AFTER_SECONDS}
+            if len(self._failed) > _MAX_TRACKED:
+                self._failed.clear()
+        self._failed[key] = now
 
     def refresh(self, analytics: dict) -> dict:
         """Forget the cached text for these facts and ask again now, with different wording."""
@@ -156,22 +175,36 @@ class SummaryService:
                 self._failed.pop(key, None)
                 self._variant.add(key)
                 self._first_seen[key] = self.clock() - self.debounce
+                if self._running == key:
+                    self._regenerate.add(key)  # the run in progress will use the old wording; go again after it
         return self.status(analytics)
 
-    def _generate(self, key: str, facts: list[str]) -> None:
+    def _generate(self, key: str, facts: list[str], temperature: float) -> None:
+        regenerate = False
         try:
-            temperature = VARIANT_TEMPERATURE if key in self._variant else 0.0
             text = self.generate(build_messages(facts), temperature).strip()
             if not is_grounded(text, facts):
                 raise ValueError("the summary used numbers that are not in the facts")
             with Session(self.engine) as session:
                 save(session, key, text, self.model, PROMPT_VERSION)
         except Exception as exc:  # the model being down must never break the page: show the facts instead
-            log.warning("Could not write the summary: %s", exc)
+            log.warning("Could not write the summary: %s", exc, exc_info=True)
             with self._lock:
-                self._failed[key] = self.clock()
+                self._remember_failure(key, self.clock())
         finally:
             with self._lock:
                 self._running = None
-                self._first_seen.pop(key, None)
-                self._variant.discard(key)
+                regenerate = key in self._regenerate
+                self._regenerate.discard(key)
+                if regenerate:
+                    self._failed.pop(key, None)
+                    self._first_seen[key] = self.clock() - self.debounce
+                else:
+                    self._first_seen.pop(key, None)
+                    self._variant.discard(key)
+        if regenerate:
+            try:
+                with Session(self.engine) as session:
+                    delete_cached(session, key)
+            except Exception:
+                log.warning("Could not clear the summary for rewriting", exc_info=True)
