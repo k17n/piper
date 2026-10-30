@@ -8,8 +8,8 @@ const POLL_MS = 3000;
 function Facts({ facts }: { facts: string[] }) {
   return (
     <ul className="list-disc space-y-1 pl-5 text-sm text-ink-2">
-      {facts.map((f) => (
-        <li key={f}>{f}</li>
+      {facts.map((f, i) => (
+        <li key={`${i}-${f}`}>{f}</li>
       ))}
     </ul>
   );
@@ -39,8 +39,16 @@ export function InsightsCard({ filters }: { filters: Filters }) {
   }
   const action =
     data.status === "ready" ? (
-      <Button onClick={() => refresh.mutate()} title="Write it again with different wording" className="h-7 px-2">
-        ↻
+      <Button
+        onClick={() => refresh.mutate()}
+        disabled={refresh.isPending}
+        title="Write it again with different wording"
+        className="h-7 px-2"
+      >
+        {/* Button takes no aria-label prop (ui.tsx is out of scope), so the glyph carries the name */}
+        <span role="img" aria-label="Write the summary again">
+          ↻
+        </span>
       </Button>
     ) : undefined;
   return (
@@ -49,7 +57,12 @@ export function InsightsCard({ filters }: { filters: Filters }) {
       hint={data.status === "ready" ? "Written by your local model from the numbers on this page" : undefined}
       right={action}
     >
-      {data.status === "ready" && <p className="text-sm leading-relaxed text-ink">{data.text}</p>}
+      {data.status === "ready" && (
+        <div className="flex flex-col gap-2">
+          <p className="text-sm leading-relaxed text-ink">{data.text}</p>
+          {refresh.isError && <p className="text-xs text-muted">Could not ask for a new version.</p>}
+        </div>
+      )}
       {data.status === "insufficient_data" && (
         <p className="text-sm text-ink-2">A summary appears once there are at least 10 applications in this view.</p>
       )}
