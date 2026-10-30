@@ -325,7 +325,7 @@ Frontend: Vite + React + TypeScript + Tailwind, ECharts (Sankey), TanStack Query
 | 🔜 **Writing Studio** | Grounded cover letters, LinkedIn, WhatsApp and email drafts from a local knowledge base, stored as threads with memory across sessions — see [PRD-writing-studio.md](PRD-writing-studio.md) |
 | 🔜 In-app **Connect Gmail** / "Sign in with Google" button | Removes the command-line step; optional bundled OAuth client for small groups (Google limits unverified apps to 100 test users with weekly re-sign-in) |
 | 🔜 Kanban board | Stage columns; dragging a card sets a manual override |
-| 🔜 Insights view | Activity heatmap and response rate by source (`/api/insights` exists) |
+| 🔜 **Analytics tab** | Applications per day, what types of roles, and what converts, with activity heatmap, mix charts and response rate by source/type/seniority — see [PRD-analytics.md](PRD-analytics.md) (`/api/insights` exists as a starting point) |
 | 🔜 ⌘K command palette | Jump to a company, switch views, trigger a sync |
 | 🔜 `piper eval` | Accuracy per field on labelled samples, to compare models |
 | 🔜 Anthropic provider | Optional cloud model behind `LLM_PROVIDER=anthropic` |
