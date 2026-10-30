@@ -12,7 +12,7 @@ from sqlmodel import Session, select
 
 from .config import Settings
 from .db import InsightSummary, utcnow
-from .insights import MIN_APPLICATIONS, PROMPT_VERSION, build_facts, build_messages, facts_hash, is_grounded
+from .insights import MIN_APPLICATIONS, PROMPT_VERSION, build_facts, build_messages, facts_hash, is_grounded, ungrounded_numbers
 
 log = logging.getLogger(__name__)
 
@@ -23,10 +23,11 @@ def get_cached(session: Session, key: str) -> str | None:
     row = session.get(InsightSummary, key)
     if row is None:
         return None
+    text = row.text  # read before the commit expires the row
     row.last_used_at = utcnow()
     session.add(row)
     session.commit()
-    return row.text
+    return text
 
 
 def save(session: Session, key: str, text: str, model: str, prompt_version: int) -> None:
@@ -51,7 +52,7 @@ def delete_cached(session: Session, key: str) -> None:
 
 def prune_excess(session: Session, keep: int = MAX_ENTRIES) -> None:
     """Keep the most recently used entries."""
-    rows = session.exec(select(InsightSummary).order_by(InsightSummary.last_used_at.desc())).all()
+    rows = session.exec(select(InsightSummary).order_by(InsightSummary.last_used_at.desc(), InsightSummary.created_at.desc())).all()
     for row in rows[keep:]:
         session.delete(row)
     session.commit()
@@ -152,6 +153,7 @@ class SummaryService:
                 log.warning("Could not start the summary", exc_info=True)
                 with self._lock:
                     self._running = None
+                    self._first_seen.pop(key, None)  # a fresh quiet period before the next try
                     self._remember_failure(key, now)
                 return {"status": "fallback", "text": None, "facts": facts}
         return {"status": "pending", "text": None, "facts": facts}
@@ -182,9 +184,18 @@ class SummaryService:
     def _generate(self, key: str, facts: list[str], temperature: float) -> None:
         regenerate = False
         try:
-            text = self.generate(build_messages(facts), temperature).strip()
+            messages = build_messages(facts)
+            text = self.generate(messages, temperature).strip()
             if not is_grounded(text, facts):
-                raise ValueError("the summary used numbers that are not in the facts")
+                bad = ungrounded_numbers(text, facts)
+                log.warning("The summary used numbers that are not in the facts (%s), asking once more: %s",
+                            ", ".join(sorted(bad)), text)
+                messages = [*messages, {"role": "assistant", "content": text}, {"role": "user", "content": (
+                    f"That used numbers that are not in the facts: {', '.join(sorted(bad))}. "
+                    "Write it again using only numbers copied exactly from the facts.")}]
+                text = self.generate(messages, temperature).strip()
+                if not is_grounded(text, facts):
+                    raise ValueError("the summary used numbers that are not in the facts")
             with Session(self.engine) as session:
                 save(session, key, text, self.model, PROMPT_VERSION)
         except Exception as exc:  # the model being down must never break the page: show the facts instead

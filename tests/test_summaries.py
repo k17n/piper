@@ -41,7 +41,7 @@ def test_delete_cached(session):
 
 def test_prune_excess_keeps_the_most_recently_used(session):
     now = utcnow()
-    for i in range(MAX_ENTRIES + 5):
+    for i in reversed(range(MAX_ENTRIES + 5)):  # inserted oldest first, so only the ordering can save k0
         session.add(InsightSummary(hash=f"k{i}", text="t", model="m", prompt_version=1,
                                    created_at=now, last_used_at=now - timedelta(minutes=i)))
     session.commit()
@@ -81,14 +81,16 @@ class Clock:
 class Recorder:
     """A fake model: records calls, replies with a grounded sentence unless told otherwise."""
 
-    def __init__(self, reply="You sent 24 applications.", error=None):
+    def __init__(self, reply="You sent 24 applications.", error=None, replies=None):
         self.reply, self.error, self.temperatures = reply, error, []
+        self.replies, self.messages = list(replies or []), []  # replies: used in order, then `reply`
 
     def __call__(self, messages, temperature):
         self.temperatures.append(temperature)
+        self.messages.append(messages)
         if self.error:
             raise self.error
-        return self.reply
+        return self.replies.pop(0) if self.replies else self.reply
 
     @property
     def calls(self):
@@ -162,9 +164,56 @@ def test_a_reply_with_unknown_numbers_is_not_used(make_service, sample_analytics
     result = svc.status(a)
     assert result["status"] == "fallback" and result["text"] is None and result["facts"] == build_facts(a)
     svc.status(a)
-    assert model.calls == 1  # not retried straight away
+    assert model.calls == 2  # the first reply and one retry; not tried again straight away
     clock.now += RETRY_AFTER_SECONDS + 1
     assert svc.status(a)["status"] == "pending"  # allowed to try again, after a new quiet period
+
+
+def _generate_once(svc, clock, a):
+    svc.status(a)
+    clock.now += DEBOUNCE_SECONDS
+    svc.status(a)  # generates
+    return svc.status(a)
+
+
+def test_an_ungrounded_reply_is_retried_once_with_the_offending_numbers(make_service, sample_analytics):
+    model = Recorder(replies=["You sent 99 and 77 applications.", "You sent 24 applications."])
+    svc, clock = make_service(model)
+    a = sample_analytics()
+    result = _generate_once(svc, clock, a)
+    assert result["status"] == "ready" and result["text"] == "You sent 24 applications."
+    assert model.calls == 2
+    first, second = model.messages
+    assert second[:len(first)] == first
+    assert second[-2] == {"role": "assistant", "content": "You sent 99 and 77 applications."}
+    assert second[-1] == {"role": "user", "content": (
+        "That used numbers that are not in the facts: 77, 99. "
+        "Write it again using only numbers copied exactly from the facts.")}
+
+
+def test_two_ungrounded_replies_fall_back_and_are_not_retried_again(make_service, sample_analytics):
+    model = Recorder(replies=["You sent 99.", "You sent 98."])
+    svc, clock = make_service(model)
+    a = sample_analytics()
+    assert _generate_once(svc, clock, a)["status"] == "fallback"
+    assert model.calls == 2
+    clock.now += RETRY_AFTER_SECONDS - 1
+    assert svc.status(a)["status"] == "fallback"
+    assert model.calls == 2
+
+
+def test_a_grounded_first_reply_is_not_retried(make_service, sample_analytics):
+    model = Recorder()
+    svc, clock = make_service(model)
+    assert _generate_once(svc, clock, sample_analytics())["status"] == "ready"
+    assert model.calls == 1
+
+
+def test_a_model_error_is_not_retried(make_service, sample_analytics):
+    model = Recorder(error=ConnectionError("down"))
+    svc, clock = make_service(model)
+    assert _generate_once(svc, clock, sample_analytics())["status"] == "fallback"
+    assert model.calls == 1
 
 
 def test_a_model_error_falls_back(make_service, sample_analytics):
@@ -210,23 +259,29 @@ def _recording_service(settings, model, clock=None):
 def test_a_spawn_failure_falls_back_and_can_be_retried(settings, sample_analytics):
     model = Recorder()
     clock = Clock()
+    attempts = []
 
-    def broken(fn):
-        raise RuntimeError("can't start new thread")
+    def flaky(fn):
+        attempts.append(fn)
+        if len(attempts) == 1:
+            raise RuntimeError("can't start new thread")
+        fn()
 
     svc = SummaryService(settings, get_engine(settings.db_path), is_syncing=lambda: False, generate=model,
-                         spawn=broken, clock=clock)
+                         spawn=flaky, clock=clock)
     a = sample_analytics()
     svc.status(a)
     clock.now += DEBOUNCE_SECONDS
     result = svc.status(a)
     assert result["status"] == "fallback" and result["text"] is None and result["facts"] == build_facts(a)
-    svc.spawn = lambda fn: fn()
     clock.now += RETRY_AFTER_SECONDS + 1
-    svc.status(a)  # new quiet period
-    clock.now += DEBOUNCE_SECONDS
-    svc.status(a)
-    assert model.calls == 1
+    assert svc.status(a)["status"] == "pending"  # a fresh quiet period starts...
+    assert len(attempts) == 1 and model.calls == 0  # ...and nothing runs yet
+    clock.now += DEBOUNCE_SECONDS - 1
+    assert svc.status(a)["status"] == "pending" and len(attempts) == 1
+    clock.now += 1
+    svc.status(a)  # the quiet period is over: the run starts
+    assert len(attempts) == 2 and model.calls == 1
     assert svc.status(a)["status"] == "ready"
 
 

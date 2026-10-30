@@ -1,5 +1,6 @@
 from piper_jobs.insights import (
     PROMPT_VERSION, build_facts, build_messages, facts_hash, is_grounded, numbers_in,
+    ungrounded_numbers,
 )
 
 
@@ -54,3 +55,21 @@ def test_messages_list_every_fact():
     messages = build_messages(["first 1", "second 2"])
     assert [m["role"] for m in messages] == ["system", "user"]
     assert "- first 1\n- second 2" in messages[1]["content"]
+
+
+def test_ungrounded_numbers_lists_only_the_unknown_ones(sample_analytics):
+    facts = build_facts(sample_analytics())
+    assert ungrounded_numbers("You sent 24 applications, 99 of them and 4.7 days.", facts) == {"99", "4.7"}
+    assert ungrounded_numbers("You sent 24 applications.", facts) == set()
+
+
+def test_an_unexpected_key_is_shown_as_other_never_raw(sample_analytics):
+    a = sample_analytics()
+    a["mix"]["source"].append({"key": "weird<script>", "count": 9, "ids": []})
+    a["conversion"]["source"].append(
+        {"key": "weird<script>", "total": 9, "responded": 0.9, "interviewed": 0.5, "offers": 0, "median_days": 1.0})
+    a["conversion"]["source"].append(
+        {"key": "weird<script>", "total": 7, "responded": 0.0, "interviewed": 0.0, "offers": 0, "median_days": None})
+    facts = build_facts(a)
+    assert any("Other 27%" in f or f.startswith("Source Other:") for f in facts)
+    assert not any("weird" in f or "<script>" in f for f in facts)

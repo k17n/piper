@@ -9,6 +9,7 @@ PROMPT_VERSION = 1  # bump when the prompt changes: older cached summaries are t
 MIN_APPLICATIONS = 10  # below this there is nothing worth summarising
 MIN_GROUP = 5  # smaller groups are too small to compare
 
+OTHER = "Other"  # shown for any key we have no label for, never the raw value
 CATEGORY_LABEL = {"design": "Design", "product": "Product", "vc": "VC", "other": "Other"}
 SOURCE_LABEL = {
     "linkedin": "LinkedIn", "ats": "Company site / ATS", "recruiter": "Recruiter",
@@ -38,7 +39,7 @@ def _shares(groups: list[dict], labels: dict[str, str], top: int = 3) -> str | N
     ranked = sorted((g for g in groups if g["count"]), key=lambda g: (-g["count"], g["key"]))[:top]
     if not total:
         return None
-    return ", ".join(f"{labels.get(g['key'], g['key'])} {_pct(g['count'] / total)} ({g['count']})" for g in ranked)
+    return ", ".join(f"{labels.get(g['key'], OTHER)} {_pct(g['count'] / total)} ({g['count']})" for g in ranked)
 
 
 def build_facts(a: dict) -> list[str]:
@@ -59,14 +60,14 @@ def build_facts(a: dict) -> list[str]:
     for title, key, labels in (("Source", "source", SOURCE_LABEL), ("Role type", "category", CATEGORY_LABEL)):
         groups = [g for g in a["conversion"][key] if g["total"] >= MIN_GROUP]
         for g in groups:
-            facts.append(f"{title} {labels.get(g['key'], g['key'])}: {g['total']} applied, "
+            facts.append(f"{title} {labels.get(g['key'], OTHER)}: {g['total']} applied, "
                          f"{_pct(g['responded'])} replied, {_pct(g['interviewed'])} interviewed")
         if len(groups) >= 2:
             best = max(groups, key=lambda g: g["responded"])
             worst = min(groups, key=lambda g: g["responded"])
             if best["responded"] != worst["responded"]:
-                facts.append(f"Highest reply rate by {title.lower()}: {labels.get(best['key'], best['key'])}; "
-                             f"lowest: {labels.get(worst['key'], worst['key'])}")
+                facts.append(f"Highest reply rate by {title.lower()}: {labels.get(best['key'], OTHER)}; "
+                             f"lowest: {labels.get(worst['key'], OTHER)}")
     if (median := a["response_time"]["median"]) is not None:
         facts.append(f"Median time to a first reply: {median} days")
     if maturing := sum(1 for c in a["cohorts"] if c["maturing"]):
@@ -96,3 +97,8 @@ def numbers_in(text: str) -> set[str]:
 def is_grounded(summary: str, facts: list[str]) -> bool:
     """The reply is non-empty and uses no number that is not in the facts."""
     return bool(summary.strip()) and numbers_in(summary) <= numbers_in("\n".join(facts))
+
+
+def ungrounded_numbers(summary: str, facts: list[str]) -> set[str]:
+    """The numbers in the reply that are not in the facts."""
+    return numbers_in(summary) - numbers_in("\n".join(facts))
