@@ -460,6 +460,7 @@ def compute_analytics(
         "series": _series(dated, granularity, start, end, with_apps=True),
         "daily": _series([(day, r) for day, r in dated if day >= daily_start], "day", daily_start, end, with_apps=False),
     }
+```
 
 - [ ] **Step 4: Run to verify pass**
 
