@@ -28,6 +28,8 @@ cover letters and messages and helps you apply, all without your data leaving yo
 - **Shows your whole search at a glance.** An interactive funnel (Sankey) shows how applications flow
   from source to outcome, with response, interview and offer rates. Click any part to see the
   applications behind it.
+- **Shows how your search is going.** An Analytics tab charts applications per day, the mix of role
+  types, sources and seniority, an activity heatmap, and response rates by each.
 - **Tracks what email can't.** Add applications by hand (company sites that send no confirmation,
   referrals, chats) and log updates like a phone screen or a verbal offer; later emails from the
   company join the same application. Paste a job posting link and **Fill from link** reads the
@@ -50,7 +52,7 @@ cover letters and messages and helps you apply, all without your data leaving yo
 - **Interview prep:** likely questions and your best matching stories, built from each company's thread.
 - **Applying with you:** preparing applications for roles you choose, always with your review before
   anything is sent.
-- **More views:** a Kanban board, activity insights and a command palette.
+- **More views:** a Kanban board and a command palette.
 
 ## Quick start
 

@@ -1,6 +1,6 @@
 import pytest
 
-from piper_jobs.categories import classify
+from piper_jobs.categories import SENIORITY_LEVELS, classify, normalize_title, seniority
 
 
 @pytest.mark.parametrize("role,company,subjects,expected", [
@@ -31,3 +31,42 @@ from piper_jobs.categories import classify
 ])
 def test_classify(role, company, subjects, expected):
     assert classify(role, company, subjects) == expected
+
+
+@pytest.mark.parametrize("role,expected", [
+    ("Sr. Product Designer", "senior"),
+    ("Senior Product Manager", "senior"),
+    ("Product Designer III", "senior"),
+    ("Product Designer II", "mid"),
+    ("Mid-level UX Designer", "mid"),
+    ("Product Designer I", "junior"),
+    ("Associate Product Manager", "junior"),
+    ("Jr Designer", "junior"),
+    ("Design Intern", "intern"),
+    ("Staff Designer", "staff"),
+    ("Principal Product Manager", "staff"),
+    ("Design Lead", "lead"),
+    ("Engineering Manager", "lead"),
+    ("Head of Product", "head"),
+    ("Senior Director of Design", "head"),
+    ("VP Product", "head"),
+    ("Product Designer", "unspecified"),
+    ("Product Manager", "unspecified"),
+    ("", "unspecified"),
+    (None, "unspecified"),
+])
+def test_seniority(role, expected):
+    assert seniority(role) == expected
+    assert expected in SENIORITY_LEVELS
+
+
+@pytest.mark.parametrize("role,expected", [
+    ("Sr. Product Designer", "product designer"),
+    ("Product Designer II", "product designer"),
+    ("Senior  Product-Designer", "product designer"),
+    ("Head of Product", "head of product"),
+    (None, ""),
+    ("", ""),
+])
+def test_normalize_title(role, expected):
+    assert normalize_title(role) == expected

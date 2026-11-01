@@ -72,6 +72,9 @@ Each feature lists what it does and how we know it works. ✅ = built, 🔜 = pl
 
 - **Access:** OAuth desktop flow with the `gmail.readonly` scope only. The OAuth client file lives in
   the user's data folder; the access token is cached there after the first sign-in.
+- **Expired sign-in:** if Google rejects the cached token (expired or revoked, e.g. the 7-day limit
+  for apps in "Testing"), `piper sync` opens a new sign-in instead of failing. The app's Sync button
+  cannot open a browser, so it reports "Gmail sign-in expired. Run `piper sync` once to sign in again."
 - **Main search:** messages from known job platforms (LinkedIn, Greenhouse, Lever, Workday, Ashby,
   SmartRecruiters, iCIMS, Naukri, Instahyre, Wellfound, Workable, Recruitee, Teamtailor, Breezy,
   Jobvite, Zoho Recruit, Keka, Darwinbox, Cutshort, Hirist, Y Combinator, Calendly) **or** subjects
@@ -250,6 +253,13 @@ view can be default.
 | `piper stats [--range …]` | Print funnel stats |
 | `piper reset [--yes]` | Delete the database and Gmail token |
 
+### 6.15 Analytics ✅
+
+A tab showing applications per day (with 7-day average, streak and best day), the mix of role types,
+sources and seniority, an activity heatmap, and response rates by those same dimensions. It follows the
+same filters and saved views. An Insights card at the top adds a short written summary of the current
+filters, produced by the local model from calculated facts only and cached. Full requirements: [PRD-analytics.md](PRD-analytics.md).
+
 ---
 
 ## 7. Configuration
@@ -277,13 +287,14 @@ Read from environment variables, then `<data dir>/.env`, then `./.env`.
   last_event_at, current_stage, manual_override, category, category_manual, job_url, notes)`
 - `review_queue(id, email_id, reason, extracted, excerpt, resolved)`
 - `saved_views(id, name, filters, is_default, created_at, updated_at)`
+- `insight_summaries(hash, text, model, prompt_version, created_at, last_used_at)`
 - `sync_state(key, value)` — last sync time, filter signature, Gmail address
 
 New columns are added automatically to existing databases on startup.
 
 ## 9. API (localhost only)
 
-`GET /api/meta`, `GET /api/sankey`, `GET /api/stats`, `GET /api/insights`, `GET /api/applications`,
+`GET /api/meta`, `GET /api/sankey`, `GET /api/stats`, `GET /api/insights`, `GET /api/analytics`, `GET /api/analytics/summary`, `POST /api/analytics/summary/refresh`, `GET /api/applications`,
 `POST /api/applications`, `PATCH|DELETE /api/applications/{id}`, `POST /api/applications/{id}/events`,
 `POST /api/job-link/preview`, `GET /api/emails/{id}/thread`, `GET /api/review-queue`,
 `POST /api/review-queue/{id}/resolve`, `GET|POST /api/views`, `PATCH|DELETE /api/views/{id}`,
@@ -318,12 +329,13 @@ Frontend: Vite + React + TypeScript + Tailwind, ECharts (Sankey), TanStack Query
 
 ## 12. Roadmap
 
+🔜 planned · 💤 backlog: built only if users ask.
+
 | Item | Notes |
 |---|---|
 | 🔜 **Writing Studio** | Grounded cover letters, LinkedIn, WhatsApp and email drafts from a local knowledge base, stored as threads with memory across sessions — see [PRD-writing-studio.md](PRD-writing-studio.md) |
 | 🔜 In-app **Connect Gmail** / "Sign in with Google" button | Removes the command-line step; optional bundled OAuth client for small groups (Google limits unverified apps to 100 test users with weekly re-sign-in) |
 | 🔜 Kanban board | Stage columns; dragging a card sets a manual override |
-| 🔜 Insights view | Activity heatmap and response rate by source (`/api/insights` exists) |
 | 🔜 ⌘K command palette | Jump to a company, switch views, trigger a sync |
 | 🔜 `piper eval` | Accuracy per field on labelled samples, to compare models |
 | 🔜 Anthropic provider | Optional cloud model behind `LLM_PROVIDER=anthropic` |
@@ -334,6 +346,8 @@ Frontend: Vite + React + TypeScript + Tailwind, ECharts (Sankey), TanStack Query
 | 🔜 Applying with you | Prepare applications for roles the user chooses; the user always reviews before anything is sent |
 | 🔜 Export | CSV / Markdown |
 | 🔜 One-click installer | Package with PyInstaller |
+| 💤 **Merge / un-merge applications** | Only if users hit duplicates the matcher misses. *Merge*: "Merge into…" on an application moves its events to another, keeps both notes, recomputes stage and category (`merge_orphan_updates` in `resolver.py` already does this automatically for one pattern, so the core is reusable). *Un-merge*: split chosen events off into a new application (`split_merged_confirmations` is the automatic precedent). Needs one endpoint per action plus a button in the application detail |
+| 💤 Confirm borderline role matches | When a status update matches the company and only partly matches a role, queue "Is this the same as *Senior Product Designer*?" in the review queue instead of guessing. Today `find_match` falls back to the single open, related application (subset/superset title, same seniority) without asking |
 
 ## 13. Open questions
 

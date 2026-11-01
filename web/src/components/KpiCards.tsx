@@ -28,7 +28,7 @@ function useCountUp(target: number, duration = 600) {
   return value;
 }
 
-function Kpi({ label, value, format, hint }: { label: string; value: number | null; format: (n: number) => string; hint?: string }) {
+export function Kpi({ label, value, format, hint }: { label: string; value: number | null; format: (n: number) => string; hint?: string }) {
   const animated = useCountUp(value ?? 0);
   return (
     <div className="card flex flex-col gap-1 px-4 py-3">

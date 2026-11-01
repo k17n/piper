@@ -85,6 +85,16 @@ class SavedView(SQLModel, table=True):
     updated_at: NaiveDatetime = Field(default_factory=utcnow)
 
 
+class InsightSummary(SQLModel, table=True):
+    __tablename__ = "insight_summaries"
+    hash: str = Field(primary_key=True)  # of the facts + model + prompt version
+    text: str
+    model: str
+    prompt_version: int
+    created_at: NaiveDatetime = Field(default_factory=utcnow)
+    last_used_at: NaiveDatetime = Field(default_factory=utcnow)
+
+
 @event.listens_for(Engine, "connect")
 def _sqlite_pragmas(dbapi_conn, _record):
     if type(dbapi_conn).__module__.startswith("sqlite3"):

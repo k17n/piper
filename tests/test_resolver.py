@@ -57,6 +57,23 @@ def test_role_wording_variants_merge(session):
     assert a.id == b.id and b.current_stage == "interview"
 
 
+def test_rejection_with_longer_role_title_attaches_to_open_application(session):
+    a = apply_event(session, company="Playlist", role="Senior Product Designer", stage="applied",
+                    source="ats", occurred_at=T0)
+    b = apply_event(session, company="Playlist", role="Senior Product Designer, New Verticals (AI Products)",
+                    stage="rejected", source="ats", occurred_at=T0 + timedelta(days=3))
+    assert a.id == b.id and b.current_stage == "rejected"
+    assert len(session.exec(select(Application)).all()) == 1
+
+
+def test_update_with_unrelated_role_still_creates_application(session):
+    apply_event(session, company="Playlist", role="Senior Product Designer", stage="applied",
+                source="ats", occurred_at=T0)
+    apply_event(session, company="Playlist", role="Backend Engineer", stage="rejected",
+                source="ats", occurred_at=T0 + timedelta(days=3))
+    assert len(session.exec(select(Application)).all()) == 2
+
+
 def test_missing_role_attaches_to_most_recent(session):
     old = apply_event(session, company="Initrode", role="Backend Engineer", stage="applied",
                       source="linkedin", occurred_at=T0)
@@ -119,3 +136,28 @@ def test_split_merged_confirmations_repairs_old_data(session):
     assert len(apps) == 3
     assert (apps[0].notes, apps[0].current_stage) == ("keep me", "rejected")  # your edits stay put
     assert split_merged_confirmations(session) == 0  # idempotent
+
+
+def test_merge_orphan_updates_repairs_old_data(session):
+    from piper_jobs.db import Event
+    from piper_jobs.resolver import merge_orphan_updates
+
+    a = apply_event(session, company="Playlist", role="Senior Product Designer", stage="viewed",
+                    source="ats", occurred_at=T0)
+    when = T0 + timedelta(days=1)
+    orphan = Application(company_norm="playlist", company_display="Playlist", source="ats",
+                         role_norm="senior product designer new verticals ai products",
+                         role_display="Senior Product Designer, New Verticals (AI Products)",
+                         first_seen=when, last_event_at=when, current_stage="rejected")
+    session.add(orphan)
+    session.flush()
+    session.add(Event(application_id=orphan.id, stage="rejected", occurred_at=when))
+    other = apply_event(session, company="Playlist", role="Backend Engineer", stage="rejected",
+                        source="ats", occurred_at=when)  # unrelated role stays its own application
+    session.commit()
+
+    assert merge_orphan_updates(session) == 1
+    apps = session.exec(select(Application).order_by(Application.id)).all()
+    assert [x.id for x in apps] == [a.id, other.id]
+    assert session.get(Application, a.id).current_stage == "rejected"
+    assert merge_orphan_updates(session) == 0  # idempotent

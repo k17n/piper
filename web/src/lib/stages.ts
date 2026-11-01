@@ -49,3 +49,22 @@ const STAGE_COLOR: Record<Stage, string> = {
 export const SOURCE_COLOR = "#9a988f";
 
 export const stageColor = (s: string) => STAGE_COLOR[s as Stage] ?? SOURCE_COLOR;
+
+// Role types are a categorical series, so each keeps one colour everywhere it is drawn.
+export const CATEGORY_COLOR: Record<Category, string> = {
+  design: "#8b6fd6",
+  product: "#2a78d6",
+  vc: "#d98a1f",
+  other: "#9a988f",
+};
+
+export const SENIORITY_LABEL: Record<string, string> = {
+  intern: "Intern",
+  junior: "Junior",
+  mid: "Mid",
+  senior: "Senior",
+  staff: "Staff / Principal",
+  lead: "Lead",
+  head: "Head / Director+",
+  unspecified: "Unspecified",
+};

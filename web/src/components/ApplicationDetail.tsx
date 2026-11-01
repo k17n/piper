@@ -114,6 +114,7 @@ function JobLink({ app, onSaved }: { app: Application; onSaved: (a: Application)
     },
     onSuccess: (a) => {
       qc.invalidateQueries({ queryKey: ["applications"] });
+      qc.invalidateQueries({ queryKey: ["analytics"] });
       onSaved(a);
       setError(null);
     },
@@ -123,6 +124,7 @@ function JobLink({ app, onSaved }: { app: Application; onSaved: (a: Application)
     mutationFn: (job_url: string) => api.patchApplication(app.id, { job_url }),
     onSuccess: (a) => {
       qc.invalidateQueries({ queryKey: ["applications"] });
+      qc.invalidateQueries({ queryKey: ["analytics"] });
       onSaved(a);
       setEditing(false);
       setError(null);
