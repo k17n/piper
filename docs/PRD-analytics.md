@@ -154,8 +154,8 @@ your volume but has the lowest reply rate. The last two weeks may still be waiti
   has: largest mix shares, best and worst reply rate among groups of 5 or more, pace versus the previous
   period, streak, and whether recent weeks are still maturing. The model receives only these as short
   labelled lines and is told to use no number that is not in them.
-- **Guard:** every number in the reply must appear in the facts; if one does not, the card shows the
-  facts as plain bullets instead. The model describes patterns only and gives no advice.
+- **Guard:** every number in the reply must appear in the facts; if one does not, the reply is retried once and then dropped,
+  and the card says a summary could not be written (no list of facts is shown). The model describes patterns only and gives no advice.
   The check covers digits only; spelled-out numbers and comparisons are not verified.
   The date range is given to the model by its length ("over 30 days"), never as dates, so dates cannot
   widen the set of numbers a reply may use.
@@ -163,8 +163,8 @@ your volume but has the lowest reply rate. The last two weeks may still be waiti
 - **Automatic and cached.** The card fills itself; it is not behind a button.
   1. The facts for the current filters are hashed together with the model name and a prompt version.
   2. A stored summary for that hash is shown immediately.
-  3. Otherwise the plain facts show at once and the summary generates in the background, then replaces
-     them. Generation never runs while a sync is running, and runs once the sync ends.
+  3. Otherwise the card shows a skeleton (pulsing placeholder lines) while the summary generates in the
+     background, then replaces it. Generation never runs while a sync is running, and runs once the sync ends.
      The sync hold-off applies when a generation starts and to syncs run by the app itself; a summary
      already being written when a sync starts is allowed to finish.
      Generation starts only after the facts have been unchanged for 10 seconds, so a burst of edits
@@ -183,7 +183,9 @@ your volume but has the lowest reply rate. The last two weeks may still be waiti
   derived from counts, never email content.
 - **API:** `GET /api/analytics/summary?<shared filters>&tz_offset=` returns `{status: "ready" | "pending"
   | "insufficient_data" | "fallback", text, facts}`; the page polls while `pending`.
-  If the model cannot be reached, the card shows the facts (`fallback`) and does not retry for 5 minutes.
+  If the model cannot be reached, the card shows one line saying so (`fallback`; `facts` is still in
+  the response but the page does not list it) and does not retry for 5 minutes. The card also shows
+  a skeleton on first load, and never shows bullet lists.
 
 ## 7. Technical design
 

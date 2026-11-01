@@ -72,6 +72,9 @@ Each feature lists what it does and how we know it works. ✅ = built, 🔜 = pl
 
 - **Access:** OAuth desktop flow with the `gmail.readonly` scope only. The OAuth client file lives in
   the user's data folder; the access token is cached there after the first sign-in.
+- **Expired sign-in:** if Google rejects the cached token (expired or revoked, e.g. the 7-day limit
+  for apps in "Testing"), `piper sync` opens a new sign-in instead of failing. The app's Sync button
+  cannot open a browser, so it reports "Gmail sign-in expired. Run `piper sync` once to sign in again."
 - **Main search:** messages from known job platforms (LinkedIn, Greenhouse, Lever, Workday, Ashby,
   SmartRecruiters, iCIMS, Naukri, Instahyre, Wellfound, Workable, Recruitee, Teamtailor, Breezy,
   Jobvite, Zoho Recruit, Keka, Darwinbox, Cutshort, Hirist, Y Combinator, Calendly) **or** subjects
