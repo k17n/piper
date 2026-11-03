@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { ChartColumn, Inbox, LayoutDashboard, Moon, Plus, Rows3, SearchX, Sun, type LucideIcon } from "lucide-react";
 import { api, normalizeFilters, type Application, type SavedView } from "./lib/api";
 import { useUrlState, type Tab } from "./lib/urlState";
 import { FilterBar } from "./components/FilterBar";
@@ -48,12 +49,14 @@ function useTheme() {
   return { dark, toggle };
 }
 
-const NAV: { tab: Tab; label: string; icon: string }[] = [
-  { tab: "dashboard", label: "Dashboard", icon: "◧" },
-  { tab: "analytics", label: "Analytics", icon: "▤" },
-  { tab: "applications", label: "Applications", icon: "☰" },
-  { tab: "review", label: "Review", icon: "◎" },
+const NAV: { tab: Tab; label: string; icon: LucideIcon }[] = [
+  { tab: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { tab: "analytics", label: "Analytics", icon: ChartColumn },
+  { tab: "applications", label: "Applications", icon: Rows3 },
+  { tab: "review", label: "Review", icon: Inbox },
 ];
+const NAV_ROW = 36; // h-9
+const NAV_GAP = 2; // gap-0.5
 
 export default function App() {
   const { tab, setTab, viewId, setViewId, filters, setFilters, restoredFromUrl } = useUrlState();
@@ -90,42 +93,52 @@ export default function App() {
 
   return (
     <div className="flex h-full">
-      <aside className="hidden w-56 shrink-0 flex-col border-r border-line bg-surface/60 px-3 py-4 md:flex">
+      <aside className="hidden w-56 shrink-0 flex-col border-r border-line bg-bg px-3 py-4 md:flex">
         <div className="mb-6 px-2">
           <Wordmark />
           <div className="mt-0.5 text-[11px] text-muted">Your job-search assistant</div>
         </div>
-        <nav className="flex flex-col gap-0.5">
-          {NAV.map((n) => (
-            <button
-              key={n.tab}
-              onClick={() => setTab(n.tab)}
-              className={cx(
-                "flex h-9 items-center gap-2.5 rounded-lg px-2.5 text-sm transition-colors",
-                tab === n.tab ? "bg-surface-2 font-medium text-ink" : "text-ink-2 hover:bg-surface-2/60 hover:text-ink",
-              )}
-            >
-              <span className="w-4 text-center text-muted">{n.icon}</span>
-              {n.label}
-              {n.tab === "review" && reviewCount > 0 && (
-                <span className="tabular ml-auto rounded-full bg-accent px-1.5 text-xs font-medium text-accent-ink">{reviewCount}</span>
-              )}
-            </button>
-          ))}
+        <nav className="relative flex flex-col gap-0.5">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-x-0 top-0 rounded-lg bg-surface-2 transition-transform duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]"
+            style={{ height: NAV_ROW, transform: `translateY(${NAV.findIndex((n) => n.tab === tab) * (NAV_ROW + NAV_GAP)}px)` }}
+          />
+          {NAV.map((n) => {
+            const active = tab === n.tab;
+            return (
+              <button
+                key={n.tab}
+                onClick={() => setTab(n.tab)}
+                aria-current={active ? "page" : undefined}
+                className={cx(
+                  "relative flex h-9 items-center gap-2.5 rounded-lg px-2.5 text-[13px] transition-colors duration-150",
+                  active ? "font-medium text-ink" : "text-ink-2 hover:text-ink",
+                )}
+              >
+                <n.icon size={16} strokeWidth={1.75} className={cx("transition-colors duration-150", active ? "text-accent" : "text-muted")} />
+                {n.label}
+                {n.tab === "review" && reviewCount > 0 && (
+                  <span className="tabular ml-auto rounded-full bg-accent px-1.5 text-[11px] font-medium text-accent-ink">{reviewCount}</span>
+                )}
+              </button>
+            );
+          })}
         </nav>
         <div className="mt-auto flex flex-col gap-4">
           <SyncIndicator meta={meta.data} />
           <div className="flex items-center justify-between border-t border-line pt-3 text-xs text-muted">
             <span title="Local model">{meta.data?.model ?? "…"}</span>
-            <Button onClick={toggle} title="Toggle theme" className="h-7 px-2">
-              {dark ? "☀" : "☾"}
+            <Button onClick={toggle} label={dark ? "Switch to light theme" : "Switch to dark theme"} title="Toggle theme" className="relative size-7 justify-center px-0">
+              <Sun size={15} className={cx("absolute transition-all duration-300", dark ? "rotate-0 opacity-100" : "rotate-90 opacity-0")} />
+              <Moon size={15} className={cx("absolute transition-all duration-300", dark ? "-rotate-90 opacity-0" : "rotate-0 opacity-100")} />
             </Button>
           </div>
         </div>
       </aside>
 
       <main className="flex min-w-0 flex-1 flex-col">
-        <div className="sticky top-0 z-30 border-b border-line bg-bg/85 px-4 py-3 backdrop-blur md:px-6">
+        <div className="sticky top-0 z-30 border-b border-line bg-bg/90 px-4 py-3 backdrop-blur-sm md:px-6">
           <div className="mb-2 flex items-center gap-3 md:hidden">
             {NAV.map((n) => (
               <button key={n.tab} onClick={() => setTab(n.tab)} className={cx("text-sm", tab === n.tab ? "font-semibold text-ink" : "text-ink-2")}>
@@ -161,7 +174,7 @@ export default function App() {
                 ) : sankey.isLoading ? (
                   <div className="h-96" />
                 ) : (
-                  <Empty title="No applications in this range">
+                  <Empty title="No applications in this range" icon={<SearchX size={18} />}>
                     Widen the date range, run a sync, or try sample data with <code>piper seed</code>.
                   </Empty>
                 )}
@@ -178,7 +191,7 @@ export default function App() {
                   {apps.data ? `${apps.data.length} application${apps.data.length === 1 ? "" : "s"}` : ""}
                 </span>
                 <Button variant="primary" onClick={() => setAdding(true)}>
-                  + Add application
+                  <Plus size={14} /> Add application
                 </Button>
               </div>
               <section className="card p-2">

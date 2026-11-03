@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { RefreshCw } from "lucide-react";
 import { api, type Filters } from "../../lib/api";
 import { Button } from "../ui";
 import { Section } from "./Section";
@@ -9,10 +10,10 @@ const POLL_MS = 3000;
 function Skeleton() {
   return (
     <div className="flex flex-col gap-2" role="status" aria-label="Writing a summary">
-      <div className="h-3 w-full animate-pulse rounded bg-surface-2" />
-      <div className="h-3 w-11/12 animate-pulse rounded bg-surface-2" />
-      <div className="h-3 w-4/5 animate-pulse rounded bg-surface-2" />
-      <div className="h-3 w-2/3 animate-pulse rounded bg-surface-2" />
+      <div className="h-3 w-full skeleton rounded" />
+      <div className="h-3 w-11/12 skeleton rounded" />
+      <div className="h-3 w-4/5 skeleton rounded" />
+      <div className="h-3 w-2/3 skeleton rounded" />
     </div>
   );
 }
@@ -48,16 +49,8 @@ export function InsightsCard({ filters }: { filters: Filters }) {
   }
   const action =
     data.status === "ready" ? (
-      <Button
-        onClick={() => refresh.mutate()}
-        disabled={refresh.isPending}
-        title="Write it again with different wording"
-        className="h-7 px-2"
-      >
-        {/* Button takes no aria-label prop (ui.tsx is out of scope), so the glyph carries the name */}
-        <span role="img" aria-label="Write the summary again">
-          ↻
-        </span>
+      <Button onClick={() => refresh.mutate()} disabled={refresh.isPending} title="Write it again with different wording" label="Write the summary again" className="size-7 justify-center px-0">
+        <RefreshCw size={14} className={refresh.isPending ? "animate-spin" : ""} />
       </Button>
     ) : undefined;
   return (

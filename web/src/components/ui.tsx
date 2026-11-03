@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { Pencil } from "lucide-react";
 import { stageColor, stageLabel } from "../lib/stages";
 
 export function cx(...parts: (string | false | null | undefined)[]) {
@@ -11,6 +12,7 @@ export function Button({
   variant = "ghost",
   disabled,
   title,
+  label,
   className,
   type = "button",
 }: {
@@ -19,23 +21,26 @@ export function Button({
   variant?: "primary" | "ghost" | "outline" | "danger";
   disabled?: boolean;
   title?: string;
+  /** Accessible name for buttons that show only an icon. */
+  label?: string;
   className?: string;
   type?: "button" | "submit";
 }) {
   const styles = {
-    primary: "bg-accent text-accent-ink hover:brightness-110",
+    primary: "bg-accent text-accent-ink shadow-sm hover:brightness-110",
     ghost: "text-ink-2 hover:bg-surface-2 hover:text-ink",
     outline: "border border-line text-ink-2 hover:bg-surface-2 hover:text-ink",
-    danger: "text-[#d03b3b] hover:bg-[#d03b3b]/10",
+    danger: "text-negative hover:bg-negative/10",
   }[variant];
   return (
     <button
       type={type}
       title={title}
+      aria-label={label}
       disabled={disabled}
       onClick={onClick}
       className={cx(
-        "inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-lg px-3 text-sm font-medium transition-colors disabled:opacity-40",
+        "inline-flex h-8 select-none items-center gap-1.5 whitespace-nowrap rounded-lg px-3 text-[13px] font-medium transition-[background-color,color,filter,transform] duration-150 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40",
         styles,
         className,
       )}
@@ -78,7 +83,7 @@ export function Popover({
         <div
           style={{ width }}
           className={cx(
-            "anim-fade-up absolute top-full z-40 mt-1.5 rounded-xl border border-line bg-surface p-1.5 shadow-2xl shadow-black/30",
+            "anim-pop-in absolute top-full z-40 mt-1.5 rounded-[10px] border border-line bg-surface p-1.5 shadow-[var(--shadow-pop)]",
             align === "right" ? "right-0" : "left-0",
           )}
         >
@@ -92,9 +97,9 @@ export function Popover({
 export function StageBadge({ stage, override }: { stage: string; override?: boolean }) {
   return (
     <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-surface-2 px-2 py-0.5 text-xs font-medium text-ink-2">
-      <span className="h-2 w-2 rounded-full" style={{ background: stageColor(stage) }} />
+      <span className="h-1.5 w-1.5 rounded-full" style={{ background: stageColor(stage) }} />
       {stageLabel(stage)}
-      {override && <span title="Set manually" className="text-muted">✎</span>}
+      {override && <Pencil size={11} aria-label="Set manually" className="text-muted" />}
     </span>
   );
 }
@@ -130,10 +135,11 @@ export function EmailText({ text, className }: { text: string; className?: strin
   );
 }
 
-export function Empty({ title, children }: { title: string; children?: ReactNode }) {
+export function Empty({ title, icon, children }: { title: string; icon?: ReactNode; children?: ReactNode }) {
   return (
     <div className="flex flex-col items-center justify-center gap-2 py-16 text-center">
-      <div className="text-base font-medium text-ink">{title}</div>
+      {icon && <div className="mb-1 flex size-10 items-center justify-center rounded-full bg-surface-2 text-muted">{icon}</div>}
+      <div className="text-[15px] font-medium text-ink">{title}</div>
       {children && <div className="max-w-md text-sm text-ink-2">{children}</div>}
     </div>
   );

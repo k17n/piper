@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { RefreshCw } from "lucide-react";
 import { api, type Meta, type SyncStatus } from "../lib/api";
 import { Button } from "./ui";
 
@@ -44,6 +45,7 @@ export function SyncIndicator({ meta }: { meta: Meta | undefined }) {
   return (
     <div className="flex flex-col gap-2">
       <Button variant="primary" className="justify-center" disabled={running} onClick={() => api.startSync()}>
+        <RefreshCw size={14} className={running ? "animate-spin" : ""} />
         {running ? "Syncing…" : "Sync now"}
       </Button>
       <div className="h-1 overflow-hidden rounded-full bg-surface-2" aria-hidden={!running}>
@@ -54,7 +56,7 @@ export function SyncIndicator({ meta }: { meta: Meta | undefined }) {
           />
         )}
       </div>
-      <div className={`text-xs leading-snug ${status.state === "error" ? "text-[#d03b3b]" : "text-muted"}`} title={status.message}>
+      <div className={`text-xs leading-snug ${status.state === "error" ? "text-negative" : "text-muted"}`} title={status.message}>
         {status.state === "idle" ? `Last sync ${ago(meta?.last_sync_at ?? null)}` : describe(status)}
       </div>
       {meta && !meta.gmail_connected && status.state !== "running" && (
