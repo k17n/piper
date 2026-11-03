@@ -13,6 +13,7 @@ export function Button({
   disabled,
   title,
   label,
+  icon,
   className,
   type = "button",
 }: {
@@ -23,6 +24,8 @@ export function Button({
   title?: string;
   /** Accessible name for buttons that show only an icon. */
   label?: string;
+  /** Square, icon-only button. */
+  icon?: boolean;
   className?: string;
   type?: "button" | "submit";
 }) {
@@ -40,7 +43,8 @@ export function Button({
       disabled={disabled}
       onClick={onClick}
       className={cx(
-        "inline-flex h-8 select-none items-center gap-1.5 whitespace-nowrap rounded-lg px-3 text-[13px] font-medium transition-[background-color,color,filter,transform] duration-150 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40",
+        "inline-flex select-none items-center gap-1.5 whitespace-nowrap rounded-lg text-[13px] font-medium transition-[background-color,color,filter,transform] duration-150 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40",
+        icon ? "size-8 justify-center" : "h-8 px-3",
         styles,
         className,
       )}

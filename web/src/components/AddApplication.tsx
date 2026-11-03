@@ -71,7 +71,7 @@ export function AddApplication({ onClose, onAdded }: { onClose: () => void; onAd
             <div className="text-lg font-semibold text-ink">Add an application</div>
             <div className="text-sm text-ink-2">For ones with no email: company sites, referrals, chats.</div>
           </div>
-          <Button onClick={onClose} title="Close" label="Close">
+          <Button onClick={onClose} title="Close" label="Close" icon>
             <X size={16} />
           </Button>
         </header>

@@ -49,7 +49,7 @@ export function InsightsCard({ filters }: { filters: Filters }) {
   }
   const action =
     data.status === "ready" ? (
-      <Button onClick={() => refresh.mutate()} disabled={refresh.isPending} title="Write it again with different wording" label="Write the summary again" className="size-7 justify-center px-0">
+      <Button onClick={() => refresh.mutate()} disabled={refresh.isPending} title="Write it again with different wording" label="Write the summary again" icon>
         <RefreshCw size={14} className={refresh.isPending ? "animate-spin" : ""} />
       </Button>
     ) : undefined;

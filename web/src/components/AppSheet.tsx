@@ -35,7 +35,7 @@ export function AppSheet({
               {selection.ids.length} application{selection.ids.length === 1 ? "" : "s"}
             </div>
           </div>
-          <Button onClick={onClose} title="Close" label="Close" className="size-8 justify-center px-0">
+          <Button onClick={onClose} title="Close" label="Close" icon>
             <X size={16} />
           </Button>
         </header>

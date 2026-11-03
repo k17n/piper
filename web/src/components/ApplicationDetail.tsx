@@ -300,11 +300,11 @@ export function ApplicationDetail({ app: initial, onClose }: { app: Application;
                 </Button>
               </span>
             ) : (
-              <Button onClick={() => setConfirmDelete(true)} title="Delete this application" label="Delete this application" className="text-muted">
+              <Button onClick={() => setConfirmDelete(true)} title="Delete this application" label="Delete this application" icon className="text-muted">
                 <Trash2 size={16} />
               </Button>
             )}
-            <Button onClick={onClose} title="Close" label="Close">
+            <Button onClick={onClose} title="Close" label="Close" icon>
               <X size={16} />
             </Button>
           </div>

@@ -132,7 +132,7 @@ export default function App() {
           <SyncIndicator meta={meta.data} />
           <div className="flex items-center justify-between border-t border-line pt-3 text-xs text-muted">
             <span title="Local model">{meta.data?.model ?? "…"}</span>
-            <Button onClick={toggle} label={dark ? "Switch to light theme" : "Switch to dark theme"} title="Toggle theme" className="relative size-7 justify-center px-0">
+            <Button onClick={toggle} label={dark ? "Switch to light theme" : "Switch to dark theme"} title="Toggle theme" icon className="relative">
               <Sun size={15} className={cx("absolute transition-all duration-300", dark ? "rotate-0 opacity-100" : "rotate-90 opacity-0")} />
               <Moon size={15} className={cx("absolute transition-all duration-300", dark ? "-rotate-90 opacity-0" : "rotate-0 opacity-100")} />
             </Button>
