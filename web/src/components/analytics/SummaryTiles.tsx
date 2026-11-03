@@ -7,10 +7,10 @@ const one = (n: number) => n.toFixed(1);
 
 function versus(now: number, before: number | null, what: string) {
   if (before == null) return undefined;
-  if (before === 0) return now > 0 ? `▲ from none ${what}` : `same as ${what}`;
+  if (before === 0) return now > 0 ? `up from none ${what}` : `same as ${what}`;
   const change = Math.round(((now - before) / before) * 100);
   if (change === 0) return `same as ${what}`;
-  return `${change > 0 ? "▲" : "▼"} ${Math.abs(change)}% vs ${what}`;
+  return `${change > 0 ? "+" : "−"}${Math.abs(change)}% vs ${what}`;
 }
 
 export function SummaryTiles({ s }: { s: Analytics["summary"] | undefined }) {

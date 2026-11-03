@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import ReactECharts from "echarts-for-react";
 import type { AnalyticsPoint, Granularity } from "../../lib/api";
 import type { Selection } from "../SankeyChart";
-import { chartColors, reducedMotion, tooltipStyle } from "./chartTheme";
+import { alpha, categoryAxis, chartColors, reducedMotion, tip, tooltipStyle, valueAxis } from "./chartTheme";
 import { esc, fmtBucket } from "./format";
 
 /** Mean of the last 7 points; null until there are 7. */
@@ -29,43 +29,38 @@ export function AppsOverTime({
     const average = showAverage && granularity === "day" ? trailingAverage(counts) : null;
     return {
       animation: !reducedMotion(),
-      grid: { left: 32, right: 12, top: 16, bottom: 28 },
+      animationDuration: 500,
+      animationEasing: "cubicOut",
+      grid: { left: 28, right: 8, top: 12, bottom: 24 },
       tooltip: {
         trigger: "axis",
-        axisPointer: { type: "shadow" },
         ...tooltipStyle(c),
+        axisPointer: { type: "shadow", shadowStyle: { color: alpha(c.accent, 0.08) } },
         formatter: (params: { dataIndex: number }[]) => {
           const p = data[params[0].dataIndex];
-          const lines = (p.apps ?? []).map((a) => `${esc(a.company)} <span style="opacity:.7">· ${esc(a.role || "role not stated")}</span>`);
-          const more = p.count - lines.length;
+          const rows = (p.apps ?? []).map((a) => ({ label: `${esc(a.company)} <span style="opacity:.6">· ${esc(a.role || "role not stated")}</span>` }));
+          const more = p.count - rows.length;
           const avg = average?.[params[0].dataIndex];
-          return [
-            `<b>${fmtBucket(p.date, granularity)}</b> · ${p.count} application${p.count === 1 ? "" : "s"}`,
-            ...lines,
-            more > 0 ? `+${more} more` : "",
-            avg != null ? `<span style="opacity:.7">7-day average ${avg}</span>` : "",
-          ]
-            .filter(Boolean)
-            .join("<br/>");
+          return tip(
+            `${fmtBucket(p.date, granularity)} · ${p.count} application${p.count === 1 ? "" : "s"}`,
+            rows,
+            [more > 0 ? `+${more} more` : "", avg != null ? `7-day average ${avg}` : ""].filter(Boolean).join("<br/>"),
+          );
         },
       },
-      xAxis: {
-        type: "category",
-        data: data.map((p) => fmtBucket(p.date, granularity)),
-        axisLabel: { color: c.ink2, fontSize: 11, hideOverlap: true },
-        axisLine: { lineStyle: { color: c.line } },
-        axisTick: { show: false },
-      },
-      yAxis: {
-        type: "value",
-        minInterval: 1,
-        axisLabel: { color: c.ink2, fontSize: 11 },
-        splitLine: { lineStyle: { color: c.line } },
-      },
+      xAxis: categoryAxis(c, data.map((p) => fmtBucket(p.date, granularity))),
+      yAxis: valueAxis(c, { minInterval: 1 }),
       series: [
-        { name: "Applications", type: "bar", data: counts, barMaxWidth: 28, itemStyle: { color: c.accent, borderRadius: [3, 3, 0, 0] } },
+        {
+          name: "Applications",
+          type: "bar",
+          data: counts,
+          barMaxWidth: 24,
+          itemStyle: { color: alpha(c.accent, 0.85), borderRadius: [4, 4, 0, 0] },
+          emphasis: { itemStyle: { color: c.accent } },
+        },
         ...(average
-          ? [{ name: "7-day average", type: "line", data: average, smooth: true, showSymbol: false, z: 3, lineStyle: { color: c.ink2, width: 2 }, itemStyle: { color: c.ink2 } }]
+          ? [{ name: "7-day average", type: "line", data: average, smooth: true, showSymbol: false, z: 3, lineStyle: { color: c.ink2, width: 1.5 }, itemStyle: { color: c.ink2 } }]
           : []),
       ],
     };

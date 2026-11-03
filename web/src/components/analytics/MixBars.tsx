@@ -39,15 +39,15 @@ export function MixBars({
               disabled={!clickable}
               onClick={() => clickable && onSelect!({ title: `${title}: ${i.label}`, ids: i.ids! })}
               className={cx(
-                "grid w-full grid-cols-[minmax(6rem,11rem)_1fr_5rem] items-center gap-2 rounded-md px-1 py-0.5 text-left text-sm",
+                "grid w-full grid-cols-[minmax(6rem,11rem)_1fr_5rem] items-center gap-3 rounded-md px-1.5 py-1 text-left text-[13px] transition-colors",
                 clickable ? "hover:bg-surface-2" : "cursor-default",
               )}
             >
               <span className="truncate text-ink-2" title={i.label}>
                 {i.label}
               </span>
-              <span className="h-3 rounded-sm bg-surface-2">
-                <span className="block h-full rounded-sm" style={{ width: `${(i.count / max) * 100}%`, background: i.color ?? "var(--accent)" }} />
+              <span className="h-1.5 rounded-full bg-surface-2">
+                <span className="block h-full rounded-full transition-[width] duration-500 ease-out" style={{ width: `${(i.count / max) * 100}%`, background: i.color ?? "var(--accent)" }} />
               </span>
               <span className="tabular text-right text-ink">
                 {i.count} <span className="text-muted">· {pct(i.count / total)}</span>

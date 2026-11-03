@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import ReactECharts from "echarts-for-react";
 import type { Analytics } from "../../lib/api";
-import { chartColors, reducedMotion, tooltipStyle } from "./chartTheme";
+import { alpha, categoryAxis, chartColors, reducedMotion, tip, tooltipStyle, valueAxis } from "./chartTheme";
 import { fmtBucket, pct } from "./format";
 
 /** Response rate by the week an application was sent. The newest weeks are dashed: replies may not be in yet. */
@@ -13,33 +13,48 @@ export function Cohorts({ data, dark }: { data: Analytics["cohorts"]; dark: bool
     data.forEach((p, i) => {
       if (!p.maturing) lastMature = i;
     });
+    const fade = {
+      type: "linear",
+      x: 0,
+      y: 0,
+      x2: 0,
+      y2: 1,
+      colorStops: [
+        { offset: 0, color: alpha(c.accent, 0.28) },
+        { offset: 1, color: alpha(c.accent, 0) },
+      ],
+    };
     return {
       animation: !reducedMotion(),
-      grid: { left: 40, right: 12, top: 12, bottom: 28 },
+      animationDuration: 500,
+      animationEasing: "cubicOut",
+      grid: { left: 36, right: 8, top: 8, bottom: 24 },
       tooltip: {
         trigger: "axis",
         ...tooltipStyle(c),
         formatter: (params: { dataIndex: number }[]) => {
           const p = data[params[0].dataIndex];
-          const note = p.maturing ? '<br/><span style="opacity:.7">still maturing</span>' : "";
           const small = p.total < 5 ? " (small sample)" : "";
-          return `<b>${fmtBucket(p.week, "week")}</b><br/>${pct(p.responded)} responded · ${p.total} applied${small}${note}`;
+          return tip(fmtBucket(p.week, "week"), [{ label: "Responded", value: pct(p.responded) }, { label: "Applied", value: `${p.total}${small}` }], p.maturing ? "still maturing" : "");
         },
       },
-      xAxis: {
-        type: "category",
-        data: data.map((p) => fmtBucket(p.week, "day")),
-        axisLabel: { color: c.ink2, fontSize: 11, hideOverlap: true },
-        axisLine: { lineStyle: { color: c.line } },
-        axisTick: { show: false },
-      },
-      yAxis: { type: "value", min: 0, max: 100, axisLabel: { color: c.ink2, fontSize: 11, formatter: "{value}%" }, splitLine: { lineStyle: { color: c.line } } },
+      xAxis: categoryAxis(c, data.map((p) => fmtBucket(p.week, "day"))),
+      yAxis: valueAxis(c, { min: 0, max: 100, formatter: "{value}%" }),
       series: [
-        { type: "line", data: data.map((p, i) => (p.maturing ? null : rate(i))), symbolSize: 7, lineStyle: { color: c.accent, width: 2 }, itemStyle: { color: c.accent } },
         {
           type: "line",
+          smooth: true,
+          data: data.map((p, i) => (p.maturing ? null : rate(i))),
+          symbolSize: 6,
+          lineStyle: { color: c.accent, width: 2 },
+          itemStyle: { color: c.accent, borderColor: c.surface, borderWidth: 2 },
+          areaStyle: { color: fade },
+        },
+        {
+          type: "line",
+          smooth: true,
           data: data.map((p, i) => (p.maturing || i === lastMature ? rate(i) : null)),
-          symbolSize: 7,
+          symbolSize: 6,
           lineStyle: { color: c.accent, width: 2, type: "dashed", opacity: 0.6 },
           itemStyle: { color: c.accent, opacity: 0.6 },
         },

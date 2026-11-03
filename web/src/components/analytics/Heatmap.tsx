@@ -4,7 +4,7 @@ import { fmtBucket, parseDay } from "./format";
 
 const LEVELS = 4;
 const shade = (level: number) =>
-  level === 0 ? "var(--surface-2)" : `color-mix(in srgb, var(--accent) ${(100 / LEVELS) * level}%, var(--surface-2))`;
+  level === 0 ? "var(--surface-2)" : `color-mix(in srgb, var(--accent) ${25 + (75 / LEVELS) * level}%, var(--surface-2))`;
 
 /** One square per day, a column per week (Monday on top). `days` must be consecutive. */
 export function Heatmap({ days, onSelect }: { days: AnalyticsPoint[]; onSelect: (s: Selection) => void }) {
@@ -14,7 +14,7 @@ export function Heatmap({ days, onSelect }: { days: AnalyticsPoint[]; onSelect: 
   return (
     <div>
       <div className="overflow-x-auto pb-1">
-        <div className="grid w-max grid-flow-col grid-rows-7 gap-[3px]">
+        <div className="grid w-max grid-flow-col grid-rows-7 gap-[2px]">
           {Array.from({ length: lead }, (_, i) => (
             <span key={`pad-${i}`} className="size-3" />
           ))}
@@ -28,7 +28,7 @@ export function Heatmap({ days, onSelect }: { days: AnalyticsPoint[]; onSelect: 
                 aria-label={label}
                 disabled={d.count === 0}
                 onClick={() => onSelect({ title: fmtBucket(d.date, "day"), ids: d.ids })}
-                className="size-3 rounded-[3px] disabled:cursor-default"
+                className="size-3 rounded-[4px] transition-transform duration-100 enabled:hover:scale-125 disabled:cursor-default"
                 style={{ background: shade(level) }}
               />
             );
@@ -38,7 +38,7 @@ export function Heatmap({ days, onSelect }: { days: AnalyticsPoint[]; onSelect: 
       <div className="mt-2 flex items-center justify-end gap-1 text-xs text-muted">
         Less
         {Array.from({ length: LEVELS + 1 }, (_, l) => (
-          <span key={l} className="size-3 rounded-[3px]" style={{ background: shade(l) }} />
+          <span key={l} className="size-3 rounded-[4px]" style={{ background: shade(l) }} />
         ))}
         More
       </div>
