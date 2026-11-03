@@ -38,7 +38,10 @@ function useTheme() {
   const toggle = () => {
     const next = !dark;
     // Switch the class before re-rendering: the Sankey reads theme colors from CSS while it renders.
-    document.documentElement.classList.toggle("dark", next);
+    const root = document.documentElement;
+    root.classList.add("theme-fade");
+    root.classList.toggle("dark", next);
+    window.setTimeout(() => root.classList.remove("theme-fade"), 260);
     try {
       localStorage.setItem("piper-theme", next ? "dark" : "light");
     } catch {
@@ -160,7 +163,7 @@ export default function App() {
           )}
         </div>
 
-        <div className="flex-1 overflow-y-auto px-4 py-5 md:px-6">
+        <div key={tab} className="flex-1 overflow-y-auto px-4 py-5 md:px-6">
           {tab === "dashboard" && (
             <div className="anim-fade-up flex flex-col gap-4">
               <KpiCards stats={stats.data} />
@@ -182,7 +185,11 @@ export default function App() {
             </div>
           )}
 
-          {tab === "analytics" && <AnalyticsTab filters={filters} dark={dark} onSelect={onSelect} />}
+          {tab === "analytics" && (
+            <div className="anim-fade-up">
+              <AnalyticsTab filters={filters} dark={dark} onSelect={onSelect} />
+            </div>
+          )}
 
           {tab === "applications" && (
             <div className="anim-fade-up flex flex-col gap-3">

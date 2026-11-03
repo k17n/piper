@@ -214,6 +214,21 @@
   animation: shimmer 1.6s linear infinite;
 }
 
+/* While the theme switches, fade colours instead of snapping. Added and removed by the toggle in App.tsx. */
+@media (prefers-reduced-motion: no-preference) {
+  html.theme-fade,
+  html.theme-fade *,
+  html.theme-fade *::before,
+  html.theme-fade *::after {
+    transition:
+      background-color 200ms ease,
+      border-color 200ms ease,
+      color 200ms ease,
+      fill 200ms ease,
+      stroke 200ms ease !important;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

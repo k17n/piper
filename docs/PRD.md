@@ -240,6 +240,7 @@ view can be default.
   dependencies, rebuilds the UI only when its source changed, opens the app.
 - Dark theme by default with a light toggle; theme-aware native dropdowns; layouts that wrap rather
   than overflow.
+- The interface uses Geist, lucide icons and a graphite and indigo palette in light and dark.
 - `index.html` is served `no-cache` and hashed assets as immutable, so rebuilt UIs never load stale.
 
 ### 6.14 Command line ✅
