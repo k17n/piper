@@ -54,8 +54,8 @@ function useTheme() {
 
 const NAV: { tab: Tab; label: string; icon: LucideIcon }[] = [
   { tab: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { tab: "analytics", label: "Analytics", icon: ChartColumn },
   { tab: "applications", label: "Applications", icon: Rows3 },
+  { tab: "analytics", label: "Analytics", icon: ChartColumn },
   { tab: "review", label: "Review", icon: Inbox },
 ];
 const NAV_ROW = 36; // h-9
