@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { X } from "lucide-react";
 import { api, type Application, type Filters } from "../lib/api";
 import { sourceLabel } from "../lib/stages";
 import type { Selection } from "./SankeyChart";
@@ -22,10 +23,10 @@ export function AppSheet({
   });
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-black/30" onClick={onClose}>
+    <div className="anim-fade-in fixed inset-0 z-50 flex justify-end bg-black/40" onClick={onClose}>
       <aside
         onClick={(e) => e.stopPropagation()}
-        className="anim-slide-in flex h-full w-full max-w-md flex-col border-l border-line bg-surface shadow-2xl"
+        className="anim-slide-in flex h-full w-full max-w-md flex-col border-l border-line bg-surface shadow-[var(--shadow-pop)]"
       >
         <header className="flex items-start justify-between gap-3 border-b border-line px-5 py-4">
           <div>
@@ -34,14 +35,14 @@ export function AppSheet({
               {selection.ids.length} application{selection.ids.length === 1 ? "" : "s"}
             </div>
           </div>
-          <Button onClick={onClose} title="Close">
-            ✕
+          <Button onClick={onClose} title="Close" label="Close" className="size-8 justify-center px-0">
+            <X size={16} />
           </Button>
         </header>
         <div className="flex-1 overflow-y-auto px-3 py-2">
-          {isLoading && <div className="p-3 text-sm text-ink-2">Loading…</div>}
+          {isLoading && <div className="flex flex-col gap-2 p-3">{[0, 1, 2].map((i) => <div key={i} className="skeleton h-14 rounded-lg" />)}</div>}
           {data?.map((a) => (
-            <button key={a.id} onClick={() => onOpen(a)} className="block w-full rounded-xl px-3 py-3 text-left hover:bg-surface-2">
+            <button key={a.id} onClick={() => onOpen(a)} className="block w-full rounded-[10px] px-3 py-3 text-left transition-colors hover:bg-surface-2">
               <div className="flex items-center justify-between gap-2">
                 <div className="min-w-0">
                   <div className="truncate font-medium text-ink">{a.company}</div>

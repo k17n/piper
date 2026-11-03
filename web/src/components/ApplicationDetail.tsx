@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { ExternalLink, Plus, Trash2, X } from "lucide-react";
 import { api, type Application, type Stage } from "../lib/api";
 import { STAGES, sourceLabel, stageColor, stageLabel } from "../lib/stages";
 import { today } from "./AddApplication";
@@ -47,7 +48,7 @@ function Thread({ emailId, order, setOrder }: { emailId: string; order: Order; s
     staleTime: 5 * 60_000,
   });
   if (isLoading) return <div className="px-1 py-4 text-sm text-ink-2">Loading the conversation from Gmail…</div>;
-  if (error) return <div className="px-1 py-4 text-sm text-[#d03b3b]">{(error as Error).message}</div>;
+  if (error) return <div className="px-1 py-4 text-sm text-negative">{(error as Error).message}</div>;
   if (!data) return null;
   const messages = order === "newest" ? [...data.messages].reverse() : data.messages;
   return (
@@ -57,7 +58,7 @@ function Thread({ emailId, order, setOrder }: { emailId: string; order: Order; s
           {data.subject || "(no subject)"}
         </div>
         <a href={data.gmail_url} target="_blank" rel="noreferrer" className="shrink-0 text-xs font-medium text-accent hover:underline">
-          Open in Gmail ↗
+          Open in Gmail <ExternalLink size={12} className="inline" />
         </a>
       </div>
       <div className="flex items-center justify-between gap-2 px-1">
@@ -158,7 +159,7 @@ function JobLink({ app, onSaved }: { app: Application; onSaved: (a: Application)
         <Button className="h-8" onClick={() => setEditing(false)}>
           Cancel
         </Button>
-        {error && <div className="w-full text-xs text-[#d03b3b]">{error}</div>}
+        {error && <div className="w-full text-xs text-negative">{error}</div>}
       </form>
     );
   }
@@ -167,7 +168,7 @@ function JobLink({ app, onSaved }: { app: Application; onSaved: (a: Application)
       {app.job_url ? (
         <>
           <a href={app.job_url} target="_blank" rel="noreferrer" title={app.job_url} className="min-w-0 truncate font-medium text-accent hover:underline">
-            Job posting ↗
+            Job posting <ExternalLink size={12} className="inline" />
           </a>
           <button onClick={() => setEditing(true)} className="text-xs text-muted hover:text-ink" title="Edit the link">
             Edit
@@ -182,11 +183,11 @@ function JobLink({ app, onSaved }: { app: Application; onSaved: (a: Application)
               {fillRole.isPending ? "Reading…" : "Fill role from link"}
             </button>
           )}
-          {error && <span className="text-xs text-[#d03b3b]">{error}</span>}
+          {error && <span className="text-xs text-negative">{error}</span>}
         </>
       ) : (
-        <button onClick={() => setEditing(true)} className="text-xs text-muted hover:text-ink">
-          + Add job posting link
+        <button onClick={() => setEditing(true)} className="inline-flex items-center gap-1 text-xs text-muted hover:text-ink">
+          <Plus size={14} /> Add job posting link
         </button>
       )}
     </div>
@@ -208,8 +209,8 @@ function LogUpdate({ app, onLogged }: { app: Application; onLogged: (a: Applicat
   });
   if (!open) {
     return (
-      <Button variant="outline" className="mb-5 ml-1" onClick={() => setOpen(true)}>
-        + Log an update
+      <Button variant="outline" className="mb-5 ml-1 gap-1" onClick={() => setOpen(true)}>
+        <Plus size={14} /> Log an update
       </Button>
     );
   }
@@ -273,10 +274,10 @@ export function ApplicationDetail({ app: initial, onClose }: { app: Application;
   const [emailId, setEmailId] = useState<string | null>(withEmail.at(-1)?.email_id ?? null);
 
   return (
-    <div className="fixed inset-0 z-[60] flex justify-end bg-black/30" onClick={onClose}>
+    <div className="anim-fade-in fixed inset-0 z-[60] flex justify-end bg-black/40" onClick={onClose}>
       <aside
         onClick={(e) => e.stopPropagation()}
-        className="anim-slide-in flex h-full w-full max-w-xl flex-col border-l border-line bg-surface shadow-2xl"
+        className="anim-slide-in flex h-full w-full max-w-xl flex-col border-l border-line bg-surface shadow-[var(--shadow-pop)]"
       >
         <header className="flex items-start justify-between gap-3 border-b border-line px-5 py-4">
           <div className="min-w-0">
@@ -299,12 +300,12 @@ export function ApplicationDetail({ app: initial, onClose }: { app: Application;
                 </Button>
               </span>
             ) : (
-              <Button onClick={() => setConfirmDelete(true)} title="Delete this application" className="text-muted">
-                🗑
+              <Button onClick={() => setConfirmDelete(true)} title="Delete this application" label="Delete this application" className="text-muted">
+                <Trash2 size={16} />
               </Button>
             )}
-            <Button onClick={onClose} title="Close">
-              ✕
+            <Button onClick={onClose} title="Close" label="Close">
+              <X size={16} />
             </Button>
           </div>
         </header>

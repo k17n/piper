@@ -43,7 +43,7 @@ export function ConversionTable({ conversion }: { conversion: Analytics["convers
               const small = r.total < SMALL_SAMPLE;
               const rate = cx("tabular px-3 py-1.5 text-right", small ? "text-muted" : "text-ink");
               return (
-                <tr key={r.key} className="border-t border-line" title={small ? `Small sample: fewer than ${SMALL_SAMPLE} applications` : undefined}>
+                <tr key={r.key} className="border-t border-line transition-colors hover:bg-surface-2/60" title={small ? `Small sample: fewer than ${SMALL_SAMPLE} applications` : undefined}>
                   <td className="py-1.5 pr-3 text-ink">
                     {LABEL[dimension](r.key)}
                     {small && <span className="ml-2 text-xs text-muted">small sample</span>}
