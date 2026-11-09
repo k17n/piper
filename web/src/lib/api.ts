@@ -102,6 +102,65 @@ export interface Stats {
   by_stage: Record<string, number>;
 }
 
+export type Granularity = "day" | "week" | "month";
+
+export interface AnalyticsPoint {
+  date: string;
+  count: number;
+  ids: number[];
+  apps?: { id: number; company: string; role: string }[];
+}
+
+export interface AnalyticsGroup {
+  key: string;
+  count: number;
+  ids: number[];
+}
+
+export interface AnalyticsConversion {
+  key: string;
+  total: number;
+  responded: number;
+  interviewed: number;
+  offers: number;
+  median_days: number | null;
+}
+
+export interface Analytics {
+  range: { from: string | null; to: string };
+  summary: {
+    total: number;
+    previous_total: number | null;
+    active_days: number;
+    per_active_day: number;
+    daily_average: number;
+    last_7d_average: number;
+    streak: number;
+    longest_streak: number;
+    best_day: { date: string; count: number } | null;
+    this_week: number;
+    last_week: number;
+  };
+  series: AnalyticsPoint[];
+  daily: AnalyticsPoint[];
+  mix: { category: AnalyticsGroup[]; source: AnalyticsGroup[]; seniority: AnalyticsGroup[] };
+  category_by_week: ({ week: string } & Record<Category, number>)[];
+  top_titles: { title: string; count: number; ids: number[] }[];
+  top_companies: { company: string; count: number; stage: Stage; ids: number[] }[];
+  weekday: { day: number; count: number; ids: number[] }[];
+  conversion: { source: AnalyticsConversion[]; category: AnalyticsConversion[]; seniority: AnalyticsConversion[] };
+  cohorts: { week: string; total: number; responded: number; maturing: boolean }[];
+  response_time: { buckets: { key: string; count: number }[]; median: number | null };
+  open_by_age: AnalyticsGroup[];
+  outcomes: AnalyticsGroup[];
+}
+
+export interface InsightSummary {
+  status: "ready" | "pending" | "insufficient_data" | "fallback";
+  text: string | null;
+  facts: string[];
+}
+
 export interface Application {
   id: number;
   company: string;
@@ -152,6 +211,8 @@ export interface ThreadMessage {
 export interface EmailThread {
   subject: string;
   gmail_url: string;
+  /** Messages in the Gmail thread that belong to another application and are not shown. */
+  hidden: number;
   messages: ThreadMessage[];
 }
 
@@ -221,6 +282,22 @@ export const api = {
   meta: () => http<Meta>("/api/meta"),
   sankey: (f: Filters) => http<SankeyData>(`/api/sankey?${filterParams(f)}`),
   stats: (f: Filters) => http<Stats>(`/api/stats?${filterParams(f)}`),
+  analytics: (f: Filters, granularity: Granularity, tzOffset = -new Date().getTimezoneOffset()) => {
+    const p = filterParams(f);
+    p.set("granularity", granularity);
+    p.set("tz_offset", String(tzOffset)); // minutes ahead of UTC; getTimezoneOffset() is minutes behind
+    return http<Analytics>(`/api/analytics?${p}`);
+  },
+  analyticsSummary: (f: Filters, tzOffset = -new Date().getTimezoneOffset()) => {
+    const p = filterParams(f);
+    p.set("tz_offset", String(tzOffset));
+    return http<InsightSummary>(`/api/analytics/summary?${p}`);
+  },
+  refreshAnalyticsSummary: (f: Filters, tzOffset = -new Date().getTimezoneOffset()) => {
+    const p = filterParams(f);
+    p.set("tz_offset", String(tzOffset));
+    return http<InsightSummary>(`/api/analytics/summary/refresh?${p}`, { method: "POST" });
+  },
   applications: (f: Filters, ids?: number[]) => {
     const p = filterParams(f);
     ids?.forEach((id) => p.append("ids", String(id)));

@@ -33,19 +33,38 @@ export const categoryLabel = (c: string) => CATEGORIES.find((x) => x.value === c
 export const sourceLabel = (s: string) => SOURCES.find((x) => x.value === s)?.label ?? s;
 export const stageLabel = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
-// Progress stages: ordinal blue ramp (light→dark as the funnel advances).
+// Progress stages: one indigo ramp, light→dark as the funnel advances.
 // Outcomes: reserved status colors (always shown with a text label). Neutral grays otherwise.
 const STAGE_COLOR: Record<Stage, string> = {
-  applied: "#6da7ec",
-  viewed: "#5598e7",
-  assessment: "#3987e5",
-  interview: "#2a78d6",
-  offer: "#256abf",
-  accepted: "#0ca30c",
-  rejected: "#d03b3b",
-  withdrawn: "#8a8985",
-  ghosted: "#6b6a66",
+  applied: "#a5b4fc",
+  viewed: "#8e9cf8",
+  assessment: "#7480f3",
+  interview: "#6366f1",
+  offer: "#4f46e5",
+  accepted: "#30a46c",
+  rejected: "#e5484d",
+  withdrawn: "#8b8b94",
+  ghosted: "#5f5f68",
 };
-export const SOURCE_COLOR = "#9a988f";
+export const SOURCE_COLOR = "#8b8b94";
 
 export const stageColor = (s: string) => STAGE_COLOR[s as Stage] ?? SOURCE_COLOR;
+
+// Role types are a categorical series, so each keeps one colour everywhere it is drawn.
+export const CATEGORY_COLOR: Record<Category, string> = {
+  design: "#e0629a",
+  product: "#6366f1",
+  vc: "#e5a03a",
+  other: "#8b8b94",
+};
+
+export const SENIORITY_LABEL: Record<string, string> = {
+  intern: "Intern",
+  junior: "Junior",
+  mid: "Mid",
+  senior: "Senior",
+  staff: "Staff / Principal",
+  lead: "Lead",
+  head: "Head / Director+",
+  unspecified: "Unspecified",
+};

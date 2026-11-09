@@ -37,3 +37,34 @@ def classify(
     if any(_VC_DOMAIN.search(d) for d in domains):
         return "vc"
     return "other"
+
+
+SENIORITY_LEVELS = ["intern", "junior", "mid", "senior", "staff", "lead", "head", "unspecified"]
+
+# Checked in this order, so "Senior Director" is head, not senior. "Manager" alone is a job, not a level.
+_SENIORITY_RULES: list[tuple[str, re.Pattern]] = [
+    ("intern", re.compile(r"\b(intern|internship|trainee|apprentice)\b", re.I)),
+    ("head", re.compile(r"\b(head of|director|vp|vice president|svp|evp|chief|cpo|cto|cdo|general manager)\b", re.I)),
+    ("staff", re.compile(r"\b(staff|principal|distinguished|fellow)\b", re.I)),
+    ("lead", re.compile(r"\b(lead|gpm|group product manager|(engineering|design|ux) manager)\b", re.I)),
+    ("senior", re.compile(r"\b(senior|sr)\b|\biii\b", re.I)),
+    ("mid", re.compile(r"\b(mid|intermediate)\b|\bii\b", re.I)),
+    ("junior", re.compile(r"\b(junior|jr|associate|entry|graduate|apm)\b|\bi\b", re.I)),
+]
+
+_LEVEL_WORDS = {"intern", "junior", "jr", "senior", "sr", "staff", "principal", "lead", "mid",
+                "i", "ii", "iii", "iv", "1", "2", "3", "4"}
+
+
+def seniority(role: str | None) -> str:
+    """Level from the role title; `unspecified` when the title carries no level."""
+    for level, rx in _SENIORITY_RULES:
+        if role and rx.search(role):
+            return level
+    return "unspecified"
+
+
+def normalize_title(role: str | None) -> str:
+    """Role title without level words or punctuation, so 'Sr. Designer' and 'Designer II' count together."""
+    words = re.sub(r"[^\w\s]", " ", (role or "").lower()).split()
+    return " ".join(w for w in words if w not in _LEVEL_WORDS)

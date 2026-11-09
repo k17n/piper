@@ -28,12 +28,12 @@ function useCountUp(target: number, duration = 600) {
   return value;
 }
 
-function Kpi({ label, value, format, hint }: { label: string; value: number | null; format: (n: number) => string; hint?: string }) {
+export function Kpi({ label, value, format, hint }: { label: string; value: number | null; format: (n: number) => string; hint?: string }) {
   const animated = useCountUp(value ?? 0);
   return (
-    <div className="card flex flex-col gap-1 px-4 py-3">
-      <div className="text-xs font-medium text-ink-2">{label}</div>
-      <div className="tabular text-2xl font-semibold tracking-tight text-ink">{value == null ? "—" : format(animated)}</div>
+    <div className="card flex flex-col gap-1 px-4 py-3.5">
+      <div className="text-xs font-medium text-muted">{label}</div>
+      <div className="tabular text-[28px] font-semibold leading-tight text-ink">{value == null ? "—" : format(animated)}</div>
       {hint && <div className="text-xs text-muted">{hint}</div>}
     </div>
   );

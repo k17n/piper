@@ -42,6 +42,44 @@ def test_never_job_subjects(subject, keep):
     assert should_process(email)[0] == keep
 
 
+@pytest.mark.parametrize("sender,subject", [
+    ('"M G (via Google Docs)" <drive-shares-dm-noreply@google.com>', 'Document shared with you: "Viral Marketing"'),
+    ("drive-shares-noreply@google.com", "Spreadsheet shared with you: Budget"),
+    ("someone@example.com", "Alex shared a document with you"),
+])
+def test_google_docs_shares_are_never_jobs(sender, subject):
+    # the body mentions an interview to prove these are dropped before any keep rule
+    email = RawEmail("x", None, sender, subject, datetime(2026, 1, 1), "Interview notes. Application received.")
+    assert not should_process(email)[0]
+
+
+def test_real_google_application_still_kept():
+    email = RawEmail("x", None, "noreply@google.com", "Thanks for applying to Google",
+                     datetime(2026, 1, 1), "Thanks for applying to Google!")
+    assert should_process(email)[0]
+
+
+@pytest.mark.parametrize("sender,subject,keep", [
+    # Google's automated mail that isn't about a job
+    ("Google <no-reply@accounts.google.com>", "Your Google Account was recovered successfully", False),
+    ("Google <no-reply@accounts.google.com>", "Someone added you as their recovery email", False),
+    ("Google <noreply-accounts@google.com>", "You shared some Google Account data with Airbnb", False),
+    ("Google Play <googleplay-noreply@google.com>", "Your Google Play order receipt", False),
+    ("Google Calendar <calendar-notification@google.com>", "Notification: Dentist @ Tue 3pm", False),
+    # Google's automated mail about a job
+    ("noreply@google.com", "Your application status at Google", True),
+    ("Google Careers <careers-noreply@google.com>", "Schedule your interview with Google", True),
+    ("Google Calendar <calendar-notification@google.com>", "Invitation: Interview with Acme @ Tue 3pm", True),
+    # not Google's automated mail: normal rules, then the model decides
+    ("Forms Response Receipts <forms-receipts-noreply@google.com>",
+     "Thanks for filling out this form: ITILITE - Lead / Senior Product Designer", True),
+    ("Priya Rao <priya.rao@google.com>", "Quick chat about the UX role?", True),
+])
+def test_google_mail_only_when_job_related(sender, subject, keep):
+    email = RawEmail("x", None, sender, subject, datetime(2026, 1, 1), "Hello.")
+    assert should_process(email)[0] == keep
+
+
 def test_strong_keep_beats_linkedin_sender():
     email = RawEmail("x", None, "jobalerts-noreply@linkedin.com", "Update",
                      datetime(2026, 1, 1), "Your application was viewed by Initrode")

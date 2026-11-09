@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { X } from "lucide-react";
 import { api, type Application, type Source, type Stage } from "../lib/api";
 import { SOURCES, STAGES, stageLabel } from "../lib/stages";
 import { Button } from "./ui";
@@ -60,18 +61,18 @@ export function AddApplication({ onClose, onAdded }: { onClose: () => void; onAd
   });
 
   return (
-    <div className="fixed inset-0 z-[60] flex justify-end bg-black/30" onClick={onClose}>
+    <div className="anim-fade-in fixed inset-0 z-[60] flex justify-end bg-black/40" onClick={onClose}>
       <aside
         onClick={(e) => e.stopPropagation()}
-        className="anim-slide-in flex h-full w-full max-w-md flex-col border-l border-line bg-surface shadow-2xl"
+        className="anim-slide-in flex h-full w-full max-w-md flex-col border-l border-line bg-surface shadow-[var(--shadow-pop)]"
       >
         <header className="flex items-start justify-between gap-3 border-b border-line px-5 py-4">
           <div>
             <div className="text-lg font-semibold text-ink">Add an application</div>
             <div className="text-sm text-ink-2">For ones with no email: company sites, referrals, chats.</div>
           </div>
-          <Button onClick={onClose} title="Close">
-            ✕
+          <Button onClick={onClose} title="Close" label="Close" icon>
+            <X size={16} />
           </Button>
         </header>
         <form
@@ -140,7 +141,7 @@ export function AddApplication({ onClose, onAdded }: { onClose: () => void; onAd
           <Field label="Notes">
             <textarea value={form.notes} onChange={(e) => set({ notes: e.target.value })} rows={3} placeholder="Who referred you, link to the posting…" className="px-3 py-2" />
           </Field>
-          {error && <div className="text-sm text-[#d03b3b]">{error}</div>}
+          {error && <div className="text-sm text-negative">{error}</div>}
           <div className="mt-auto flex justify-end gap-2 border-t border-line pt-4">
             <Button onClick={onClose}>Cancel</Button>
             <Button type="submit" variant="primary" disabled={add.isPending || !form.company.trim()}>

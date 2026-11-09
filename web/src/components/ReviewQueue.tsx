@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { ExternalLink } from "lucide-react";
 import { api, type ReviewItem } from "../lib/api";
 import { SOURCES, STAGES, stageLabel } from "../lib/stages";
 import { Button, EmailText, Empty, cx, fmtDate } from "./ui";
@@ -49,7 +50,7 @@ function ReviewCard({ item }: { item: ReviewItem }) {
             </button>
             {item.email.gmail_url && (
               <a href={item.email.gmail_url} target="_blank" rel="noreferrer" className="font-medium text-accent hover:underline">
-                Open in Gmail ↗
+                Open in Gmail <ExternalLink size={12} className="inline" />
               </a>
             )}
           </div>
@@ -105,7 +106,7 @@ function ReviewCard({ item }: { item: ReviewItem }) {
           Not a job email
         </Button>
       </form>
-      {error && <div className="text-xs text-[#d03b3b]">{error}</div>}
+      {error && <div className="text-xs text-negative">{error}</div>}
     </div>
   );
 }

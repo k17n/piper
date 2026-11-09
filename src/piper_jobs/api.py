@@ -24,10 +24,13 @@ from .job_page import JobPageError, normalize_url, read_job_page
 from .filters import AppRow, Filters, RangeKey, load_rows
 from .pipeline import SyncRunner
 from .resolver import (apply_event, normalize_role, recompute_all_categories, recompute_category,
-                       recompute_stage, split_merged_confirmations)
+                       fix_unfounded_viewed, merge_orphan_updates, recompute_stage, split_merged_confirmations)
 from .sankey import build_sankey
 from .schema import Source, Stage
 from .stats import compute_insights, compute_stats
+from .analytics import compute_analytics, previous_filters
+from .insights import PROMPT_VERSION
+from .summaries import SummaryService, prune_stale
 
 STATIC_DIR = Path(__file__).parent / "static"
 
@@ -169,10 +172,21 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             split_merged_confirmations(session)
             set_state(session, "split_confirmations_v1", utcnow().isoformat())
             session.commit()
+        if not get_state(session, "merge_orphan_updates_v1"):  # one-time repair, see resolver
+            merge_orphan_updates(session)
+            set_state(session, "merge_orphan_updates_v1", utcnow().isoformat())
+            session.commit()
+        if not get_state(session, "fix_unfounded_viewed_v1"):  # one-time repair, see resolver
+            fix_unfounded_viewed(session)
+            set_state(session, "fix_unfounded_viewed_v1", utcnow().isoformat())
+            session.commit()
 
     app = FastAPI(title="P.I.P.E.R.", version="0.1.0")
     app.state.settings = settings
     app.state.runner = runner
+    with Session(engine) as s:
+        prune_stale(s, settings.ollama_model, PROMPT_VERSION)
+    app.state.summaries = SummaryService(settings, engine, lambda: runner.running)
 
     def session_dep():
         with Session(engine) as session:
@@ -209,6 +223,39 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     def insights(filters: Filters = Depends(get_filters), session: Session = Depends(session_dep)):
         return compute_insights(rows_for(session, filters))
 
+    def analytics_data(session: Session, filters: Filters, granularity: str, tz_offset: int) -> dict:
+        now = utcnow()
+        # same UTC-date window as load_rows, so totals agree with /api/stats; tz_offset only shifts local days
+        start, end = filters.date_bounds(now.date())
+        previous = previous_filters(filters, now.date())
+        previous_total = len(rows_for(session, previous)) if previous else None
+        return compute_analytics(rows_for(session, filters), now, tz_offset, granularity, start, end, previous_total)
+
+    @app.get("/api/analytics")
+    def analytics(
+        filters: Filters = Depends(get_filters),
+        granularity: Literal["day", "week", "month"] = "day",
+        tz_offset: int = Query(0, ge=-840, le=840),  # minutes ahead of UTC, so days match the user's
+        session: Session = Depends(session_dep),
+    ):
+        return analytics_data(session, filters, granularity, tz_offset)
+
+    @app.get("/api/analytics/summary")
+    def analytics_summary(
+        filters: Filters = Depends(get_filters),
+        tz_offset: int = Query(0, ge=-840, le=840),
+        session: Session = Depends(session_dep),
+    ):
+        return app.state.summaries.status(analytics_data(session, filters, "day", tz_offset))
+
+    @app.post("/api/analytics/summary/refresh")
+    def analytics_summary_refresh(
+        filters: Filters = Depends(get_filters),
+        tz_offset: int = Query(0, ge=-840, le=840),
+        session: Session = Depends(session_dep),
+    ):
+        return app.state.summaries.refresh(analytics_data(session, filters, "day", tz_offset))
+
     @app.get("/api/applications")
     def applications(
         filters: Filters = Depends(get_filters),
@@ -242,13 +289,23 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         except gmail_client.GmailNotConfigured as exc:
             raise HTTPException(409, str(exc)) from exc
         account = get_state(session, "gmail_address")
+        # Gmail groups identical subjects ("Thanks for applying to X") into one thread, even when they
+        # are for different roles. Hide messages that belong to another application; keep the rest.
+        owners: dict[str, set[int]] = {}
+        for eid, app_id in session.exec(
+            select(Event.email_id, Event.application_id).where(Event.email_id.in_([m.id for m in messages]))
+        ).all():
+            owners.setdefault(eid, set()).add(app_id)
+        mine = owners.get(email.id, set())
+        shown = [m for m in messages if not mine or not owners.get(m.id) or owners[m.id] & mine]
         return {
-            "subject": messages[0].subject if messages else email.subject,
+            "subject": shown[0].subject if shown else email.subject,
             "gmail_url": message_url(email.id, account),
+            "hidden": len(messages) - len(shown),
             "messages": [
                 {"id": m.id, "from": m.from_addr, "to": m.to_addr, "date": m.received_at.isoformat(),
                  "outgoing": m.outgoing, "body": m.body, "highlight": m.id == email.id}
-                for m in messages
+                for m in shown
             ],
         }
 

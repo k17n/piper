@@ -2,14 +2,11 @@ import { useEffect, useMemo, useState } from "react";
 import ReactECharts from "echarts-for-react";
 import type { SankeyData } from "../lib/api";
 import { SOURCE_COLOR, stageColor } from "../lib/stages";
+import { chartColors, MONO, tip, tooltipStyle } from "./analytics/chartTheme";
 
 export interface Selection {
   title: string;
   ids: number[];
-}
-
-function cssVar(name: string) {
-  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 }
 
 // Filter bar, KPI cards and the funnel card's header + padding sit above/around the chart.
@@ -29,10 +26,7 @@ export function SankeyChart({ data, dark, onSelect }: { data: SankeyData; dark: 
   // Fill the window's remaining height so the funnel isn't squashed into the top half of the screen.
   const viewportHeight = useViewportHeight();
   const { option, nodeIds } = useMemo(() => {
-    const ink = cssVar("--text");
-    const ink2 = cssVar("--text-2");
-    const surface = cssVar("--surface");
-    const border = cssVar("--border");
+    const c = chartColors();
 
     const inflow = new Map<string, number>();
     const outflow = new Map<string, number>();
@@ -53,22 +47,19 @@ export function SankeyChart({ data, dark, onSelect }: { data: SankeyData; dark: 
 
     const option = {
       animation: !window.matchMedia("(prefers-reduced-motion: reduce)").matches,
-      animationDuration: 700,
+      animationDuration: 600,
       animationEasing: "cubicOut",
       tooltip: {
         trigger: "item",
-        backgroundColor: surface,
-        borderColor: border,
-        textStyle: { color: ink, fontSize: 12 },
-        extraCssText: "border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.25);",
+        ...tooltipStyle(c),
         formatter: (p: { dataType: string; data: { source: string; target: string; value: number; name: string } }) => {
           if (p.dataType === "edge") {
             const { source, target, value } = p.data;
             const share = Math.round((value / (nodeTotal(source) || 1)) * 100);
-            return `<b>${source} → ${target}</b><br/>${value} application${value === 1 ? "" : "s"} · ${share}% of ${source}`;
+            return tip(`${source} → ${target}`, [{ label: `${value} application${value === 1 ? "" : "s"}`, value: `${share}% of ${source}` }]);
           }
-          const name = p.data.name;
-          return `<b>${name}</b><br/>${nodeTotal(name)} application${nodeTotal(name) === 1 ? "" : "s"}`;
+          const n = nodeTotal(p.data.name);
+          return tip(p.data.name, [{ label: `${n} application${n === 1 ? "" : "s"}` }]);
         },
       },
       series: [
@@ -78,30 +69,28 @@ export function SankeyChart({ data, dark, onSelect }: { data: SankeyData; dark: 
           right: 120,
           top: 12,
           bottom: 12,
-          nodeWidth: 12,
-          nodeGap: 14,
+          nodeWidth: 8,
+          nodeGap: 12,
           nodeAlign: "left",
           layoutIterations: 64,
           draggable: false,
-          emphasis: { focus: "adjacency" },
+          emphasis: { focus: "adjacency", lineStyle: { opacity: 0.55 } },
           data: data.nodes.map((n) => ({
             name: n.name,
             itemStyle: {
               color: n.kind === "source" ? SOURCE_COLOR : stageColor(n.kind),
-              borderColor: surface,
-              borderWidth: 1,
-              borderRadius: 3,
+              borderRadius: 2,
             },
           })),
           links: data.links.map((l) => ({ ...l })),
-          lineStyle: { color: "gradient", curveness: 0.5, opacity: dark ? 0.38 : 0.32 },
+          lineStyle: { color: "gradient", curveness: 0.5, opacity: dark ? 0.3 : 0.24 },
           label: {
-            color: ink,
+            color: c.ink,
             fontSize: 12,
             formatter: (p: { name: string }) => `{name|${p.name}}  {count|${nodeTotal(p.name)}}`,
             rich: {
-              name: { color: ink, fontSize: 12, fontWeight: 500 },
-              count: { color: ink2, fontSize: 12 },
+              name: { color: c.ink, fontSize: 12, fontWeight: 500 },
+              count: { color: c.muted, fontSize: 11, fontFamily: MONO },
             },
           },
         },

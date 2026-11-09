@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ChevronDown, Pencil, Star, X } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, sameFilters, type Filters, type SavedView } from "../lib/api";
 import { Button, Popover, cx } from "./ui";
@@ -67,7 +68,7 @@ export function ViewPicker({ views, viewId, filters, onOpen, onDetach, onSaved }
           <span className="text-muted">View</span>
           <span className="truncate text-ink">{active ? active.name : "Unsaved"}</span>
           {modified && <span title="Filters changed since this view was saved" className="h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />}
-          <span className="text-muted">▾</span>
+          <ChevronDown size={14} className="text-muted" />
         </button>
       )}
     >
@@ -102,27 +103,30 @@ export function ViewPicker({ views, viewId, filters, onOpen, onDetach, onSaved }
                   </button>
                   <button
                     title={v.is_default ? "Default view (loads on startup)" : "Set as default"}
+                    aria-label={v.is_default ? "Default view" : "Set as default view"}
                     onClick={() => patch.mutate({ id: v.id, is_default: !v.is_default })}
                     className={cx("px-1 text-base", v.is_default ? "text-[#eda100]" : "text-muted opacity-0 group-hover:opacity-100")}
                   >
-                    {v.is_default ? "★" : "☆"}
+                    <Star size={14} className={v.is_default ? "fill-current" : ""} />
                   </button>
                   <button
                     title="Rename"
+                    aria-label="Rename view"
                     onClick={() => {
                       setRenaming(v.id);
                       setRenameValue(v.name);
                     }}
                     className="px-1 text-muted opacity-0 hover:text-ink group-hover:opacity-100"
                   >
-                    ✎
+                    <Pencil size={13} />
                   </button>
                   <button
                     title="Delete"
+                    aria-label="Delete view"
                     onClick={() => remove.mutate(v.id)}
                     className="px-1 text-muted opacity-0 hover:text-[#d03b3b] group-hover:opacity-100"
                   >
-                    ✕
+                    <X size={14} />
                   </button>
                 </>
               )}

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { Filters, RangeKey, SavedView } from "../lib/api";
 import { CATEGORIES, SOURCES, STAGES, stageColor, stageLabel } from "../lib/stages";
+import { ChevronDown } from "lucide-react";
 import { Popover, cx, fmtDate } from "./ui";
 import { ViewPicker } from "./ViewPicker";
 
@@ -45,13 +46,13 @@ function MultiSelect({
         <button
           onClick={toggle}
           className={cx(
-            "flex h-8 items-center gap-1.5 rounded-lg border border-line px-3 text-sm transition-colors hover:bg-surface-2",
+            "flex h-8 items-center gap-1.5 rounded-lg border border-line px-3 text-[13px] transition-colors hover:bg-surface-2",
             (open || selected.length > 0) && "bg-surface-2",
           )}
         >
           <span className="text-muted">{label}</span>
           <span className="text-ink">{summary}</span>
-          <span className="text-muted">▾</span>
+          <ChevronDown size={14} className="text-muted" />
         </button>
       )}
     >
