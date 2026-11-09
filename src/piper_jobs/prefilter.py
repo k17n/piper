@@ -9,7 +9,24 @@ from functools import lru_cache
 from .schema import RawEmail
 
 # Bump when the rules below change: the next sync re-checks emails that were skipped before.
-RULES_VERSION = 5
+RULES_VERSION = 7
+
+# Google's own automated mail (accounts, Drive, Calendar, Play…) is kept only when it's about a job.
+# People writing from @google.com (recruiters) and Google Forms receipts (companies use Forms as
+# application forms) go through the normal rules.
+GOOGLE_PASS_THROUGH = {"forms-receipts-noreply@google.com"}
+GOOGLE_AUTOMATED_LOCAL = re.compile(r"no-?reply|notification|notify|alert|calendar", re.I)
+GOOGLE_JOB_SIGNAL = re.compile(
+    r"\b(appl(y|ied|ying|ication)|interview|recruit(er|ing|ment)?|candida(te|cy|ture)|careers?|jobs?"
+    r"|hiring|assessment|next steps|shortlisted)\b",
+    re.I,
+)
+
+# Checked first, on the sender: notifications that are never an application update.
+NEVER_JOB_FROM = [
+    r"drive-shares-[\w-]*noreply@google\.com",  # Google Docs / Drive "shared with you"
+    r"comments-noreply@docs\.google\.com",
+]
 
 # Checked before anything else, on the subject: never an application update, whatever the body says.
 NEVER_JOB_SUBJECT = [
@@ -36,6 +53,9 @@ NEVER_JOB_SUBJECT = [
     r"job.s expiring",
     r"saved job is expiring",
     r"open to work",
+    # Google Docs / Drive sharing notifications
+    r"^(document|spreadsheet|presentation|file|folder|item)s? shared with you",
+    r"\bshared an? (document|spreadsheet|presentation|file|folder) with you\b",
     # applications that were started but never submitted
     r"application is incomplete",
     r"complete your (job )?application",
@@ -78,6 +98,7 @@ DROP_SUBJECT = [
     r"premium",
 ]
 
+_never_from = [re.compile(p, re.I) for p in NEVER_JOB_FROM]
 _never = [re.compile(p, re.I) for p in NEVER_JOB_SUBJECT]
 _keep = [re.compile(p, re.I) for p in STRONG_KEEP]
 _drop_from = [re.compile(p, re.I) for p in DROP_FROM]
@@ -92,6 +113,14 @@ def _sender_matches(from_addr: str, patterns: list[str]) -> str | None:
         if addr == p or domain == p or domain.endswith("." + p):
             return p
     return None
+
+
+def _is_google_automated(from_addr: str) -> bool:
+    addr = parseaddr(from_addr)[1].lower()
+    local, _, domain = addr.rpartition("@")
+    if addr in GOOGLE_PASS_THROUGH or not (domain == "google.com" or domain.endswith(".google.com")):
+        return False
+    return domain != "google.com" or bool(GOOGLE_AUTOMATED_LOCAL.search(local))
 
 
 @lru_cache(maxsize=8)
@@ -114,6 +143,9 @@ def should_process(
         return False, f"always ignore: {hit}"
     if hit := _sender_matches(email.from_addr, list(include)):
         return True, f"always include: {hit}"
+    for rx in _never_from:
+        if rx.search(email.from_addr):
+            return False, f"never job sender: {rx.pattern}"
     for rx in _never + _compile_user_patterns(tuple(never)):
         if rx.search(email.subject):
             return False, f"never job: {rx.pattern}"
@@ -123,6 +155,8 @@ def should_process(
     for rx in _keep:
         if rx.search(text):
             return True, f"strong keep: {rx.pattern}"
+    if _is_google_automated(email.from_addr) and not GOOGLE_JOB_SIGNAL.search(email.subject):
+        return False, "Google notification, not about a job"
     if email.promotional:
         return False, "promotional (Gmail Promotions)"
     for rx in _drop_from:
