@@ -15,6 +15,8 @@ JOB_PLATFORMS = [
     "smartrecruiters.com", "icims.com", "naukri.com", "instahyre.com", "wellfound.com", "angel.co",
     "workable.com", "recruitee.com", "teamtailor.com", "breezy.hr", "jobvite.com", "zohorecruit.com",
     "keka.com", "darwinbox.in", "cutshort.io", "hirist.tech", "ycombinator.com", "calendly.com",
+    # domains these tools send candidate mail from, which differ from their website's domain
+    "kekamail.com", "greenhouse-mail.io", "workablemail.com", "ats.rippling.com", "pyjamahr.com",
 ]
 SUBJECT_TERMS = [
     "application", "applying", "interview", "unfortunately", "offer", "assessment", "candidacy",

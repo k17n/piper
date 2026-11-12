@@ -250,6 +250,91 @@ def test_confirmation_mislabelled_viewed_becomes_applied(settings, monkeypatch):
     assert stages == {"Playlist": "applied", "Initrode": "viewed"}
 
 
+@pytest.mark.parametrize("sender", [
+    "Gocomet Hiring team <no-reply@kekamail.com>",
+    "Workable <noreply@candidates.workablemail.com>",
+    "Acme <no-reply@us.greenhouse-mail.io>",
+    "Acme <no-reply@ats.rippling.com>",
+    "Acme <noreply@email.pyjamahr.com>",
+])
+def test_shared_ats_sender_is_not_a_company(settings, monkeypatch, sender):
+    # One hiring tool sends for many companies: a confirmation from Loop must not be read as
+    # "already in a hiring process with GoComet" just because GoComet used the same tool earlier.
+    emails = [
+        mail("g", sender, "Application for Lead Designer received, Thank you!", 1, "Thank you for applying to GoComet."),
+        mail("l", sender.replace("Gocomet", "Loop"), "Application for Senior Product Designer received, Thank you!",
+             2, "Thank you for applying to Loop."),
+    ]
+    FakeGmail(emails, by_query={"newer_than": ["g", "l"]}).install(monkeypatch)
+    model = FakeModel({"g": ev("GoComet", "applied", role="Lead Designer"),
+                       "l": ev("Loop", "applied", role="Senior Product Designer")})
+    sync(settings, service=object(), extractor=model)
+    assert model.contexts["l"] == ""
+
+
+LINKEDIN_SENT_TO_BODY = (
+    "Your application was sent to Loop AI\n\nStrategist II - Product Operations & Strategy\nLoop AI\nBengaluru\n"
+    "View job: https://www.linkedin.com/comm/jobs/view/4479814047/?trackingId=abc\n\n"
+    "Jobs you might be interested in\nSenior Designer\nAcme\nhttps://www.linkedin.com/comm/jobs/view/1/"
+)
+
+
+def test_linkedin_confirmation_is_read_by_rule_not_model(settings, monkeypatch):
+    # the local model called these "not a job" (the body is mostly links and job suggestions)
+    email = mail("s", "LinkedIn <jobs-noreply@linkedin.com>", "Karthik V, your application was sent to Loop AI",
+                 1, LINKEDIN_SENT_TO_BODY, bulk=True)
+    FakeGmail([email], by_query={"newer_than": ["s"]}).install(monkeypatch)
+    settings.include_sent_threads = settings.follow_company_domains = False
+    model = FakeModel({"s": ev(job=False, conf=0.95)})
+    sync(settings, service=object(), extractor=model)
+    assert model.calls == []
+    with Session(get_engine(settings.db_path)) as s:
+        (app,) = s.exec(select(Application)).all()
+    assert (app.company_display, app.role_display, app.current_stage, app.source) == (
+        "Loop AI", "Strategist II - Product Operations & Strategy", "applied", "linkedin")
+
+
+def test_old_not_job_linkedin_confirmations_are_rechecked(settings, monkeypatch):
+    email = mail("s", "LinkedIn <jobs-noreply@linkedin.com>", "Karthik V, your application was sent to Loop AI",
+                 1, LINKEDIN_SENT_TO_BODY)
+    FakeGmail([email], by_query={"newer_than": ["s"], "after:": ["s"]}).install(monkeypatch)
+    settings.include_sent_threads = settings.follow_company_domains = False
+    sync(settings, service=object(), extractor=FakeModel({}))
+    with Session(get_engine(settings.db_path)) as s:  # what an older version stored
+        for a in s.exec(select(Application)).all():
+            for e in s.exec(select(Event).where(Event.application_id == a.id)).all():
+                s.delete(e)
+            s.flush()
+            s.delete(a)
+        s.get(Email, "s").llm_status = "not_job"
+        s.commit()
+
+    settings.backfill_days += 1  # any filter change triggers the re-check
+    sync(settings, service=object(), extractor=FakeModel({}))
+    with Session(get_engine(settings.db_path)) as s:
+        assert s.get(Email, "s").llm_status == "ok"
+        assert [a.company_display for a in s.exec(select(Application)).all()] == ["Loop AI"]
+
+
+@pytest.mark.parametrize("subject,body,role", [
+    ("Your application was sent to Nielsen", "Your application was sent to Nielsen\n\nUX Lead\nNielsen\nRemote", "UX Lead"),
+    ("Your application was sent to noon", "Your application was sent to noon\nnoon\nDubai", None),
+    ("Your application was sent to Zoca", "", None),
+])
+def test_linkedin_role_parsing(subject, body, role):
+    from piper_jobs.templates import known_template
+
+    event = known_template(mail("x", "LinkedIn <jobs-noreply@linkedin.com>", subject, 1, body))
+    assert (event.company, event.role) == (subject.rsplit(" ", 1)[-1], role)
+
+
+def test_template_ignores_lookalikes():
+    from piper_jobs.templates import known_template
+
+    assert known_template(mail("x", "Phish <x@evil.example>", "Your application was sent to Acme", 1)) is None
+    assert known_template(mail("x", "LinkedIn <jobs-noreply@linkedin.com>", "Your application was viewed by Acme", 1)) is None
+
+
 def test_fix_unfounded_viewed_repairs_old_data(session):
     from piper_jobs.resolver import apply_event, fix_unfounded_viewed
 
