@@ -9,7 +9,7 @@ from functools import lru_cache
 from .schema import RawEmail
 
 # Bump when the rules below change: the next sync re-checks emails that were skipped before.
-RULES_VERSION = 7
+RULES_VERSION = 8
 
 # Google's own automated mail (accounts, Drive, Calendar, Play…) is kept only when it's about a job.
 # People writing from @google.com (recruiters) and Google Forms receipts (companies use Forms as

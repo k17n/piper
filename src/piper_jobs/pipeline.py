@@ -16,6 +16,7 @@ from .llm.prompt import PROMPT_VERSION
 from .prefilter import RULES_VERSION, should_process
 from .resolver import ambiguous_applications, apply_event, mentions_viewed
 from .schema import RawEmail, Stage
+from .templates import is_linkedin_confirmation, known_template
 
 Progress = Callable[[dict[str, Any]], None]
 MIN_CONFIDENCE = 0.5  # job-related but less sure than this → review
@@ -92,12 +93,14 @@ def process_email(
     elif not keep:
         email.llm_status = "skipped"
     else:
-        raw.context = raw.context or job_context(session, raw, settings)
-        try:
-            event = extractor.extract(raw)
-        except ExtractionError as exc:
-            _review(session, email, raw, f"The model's answer couldn't be read: {exc}")
-            event = None
+        event = known_template(raw)
+        if event is None:
+            raw.context = raw.context or job_context(session, raw, settings)
+            try:
+                event = extractor.extract(raw)
+            except ExtractionError as exc:
+                _review(session, email, raw, f"The model's answer couldn't be read: {exc}")
+                event = None
         if event is not None and outreach and event.is_job_related:
             event.stage, event.source = Stage.applied, event.source or "direct"
         if event is not None and event.is_job_related and event.stage == Stage.viewed and not mentions_viewed(f"{raw.subject}\n{raw.body}"):
@@ -204,7 +207,8 @@ def _not_job_with_known_company(session: Session, settings: Settings) -> list[Em
     reviewed = set(session.exec(select(ReviewItem.email_id)).all())
     return [
         e for e in session.exec(select(Email).where(Email.llm_status == "not_job")).all()
-        if e.id not in reviewed and (sender_domain(e.from_addr) in domains or e.thread_id in threads)
+        if e.id not in reviewed and (sender_domain(e.from_addr) in domains or e.thread_id in threads
+                                     or is_linkedin_confirmation(e.from_addr, e.subject))  # now read by rule
     ]
 
 
